@@ -1,0 +1,214 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================================
+   LIGHT MODE (DEFAULT)
+   ============================================================ */
+:root {
+  --background: #FDFBF7;
+  --foreground: #0F172A;
+  --card-bg: #FFFFFF;
+  --card-border: rgba(212, 175, 55, 0.28);
+  --muted-text: #64748B;
+  --subtle-surface: #F8FAFC;
+}
+
+/* ============================================================
+   DARK MODE
+   ============================================================ */
+html.dark {
+  --background: #07090E;
+  --foreground: #E2E8F0;
+  --card-bg: #0B0F19;
+  --card-border: rgba(212, 175, 55, 0.2);
+  --muted-text: #94A3B8;
+  --subtle-surface: #0F1626;
+}
+
+body {
+  color: var(--foreground);
+  background-color: var(--background);
+  font-family: var(--font-ibm-plex-arabic), sans-serif;
+  overflow-x: hidden;
+  transition: background-color 0.25s ease, color 0.25s ease;
+}
+
+/* ============================================================
+   LIGHT MODE OVERRIDES FOR HIGH-CONTRAST LUXURY PALETTE
+   ============================================================ */
+html:not(.dark) body {
+  background-color: #FDFBF7 !important;
+  color: #0F172A !important;
+}
+
+/* Surfaces */
+html:not(.dark) .bg-dark-950 {
+  background-color: #FDFBF7 !important;
+}
+
+html:not(.dark) .bg-dark-950\/90 {
+  background-color: rgba(253, 251, 247, 0.94) !important;
+}
+
+html:not(.dark) .bg-dark-950\/80 {
+  background-color: rgba(253, 251, 247, 0.88) !important;
+}
+
+html:not(.dark) .bg-dark-950\/60 {
+  background-color: rgba(253, 251, 247, 0.75) !important;
+}
+
+html:not(.dark) .bg-dark-900 {
+  background-color: #FFFFFF !important;
+  box-shadow: 0 4px 20px -2px rgba(212, 175, 55, 0.08);
+}
+
+html:not(.dark) .bg-dark-900\/90 {
+  background-color: rgba(255, 255, 255, 0.94) !important;
+}
+
+html:not(.dark) .bg-dark-850 {
+  background-color: #F8FAFC !important;
+}
+
+html:not(.dark) .bg-dark-800 {
+  background-color: #F1F5F9 !important;
+}
+
+html:not(.dark) .hover\:bg-dark-850:hover {
+  background-color: #F1F5F9 !important;
+}
+
+html:not(.dark) .hover\:bg-dark-800:hover {
+  background-color: #E2E8F0 !important;
+}
+
+/* Cards & Glass Containers */
+html:not(.dark) .glass-card {
+  background: rgba(255, 255, 255, 0.92) !important;
+  border: 1px solid rgba(212, 175, 55, 0.35) !important;
+  box-shadow: 0 10px 30px -5px rgba(212, 175, 55, 0.1) !important;
+}
+
+html:not(.dark) .tool-card {
+  background: #FFFFFF !important;
+  border: 1px solid rgba(212, 175, 55, 0.28) !important;
+  box-shadow: 0 4px 18px -2px rgba(0, 0, 0, 0.05) !important;
+}
+
+/* Typography in Light Mode */
+html:not(.dark) .text-white {
+  color: #0F172A;
+}
+
+html:not(.dark) .text-gray-100 {
+  color: #0F172A;
+}
+
+html:not(.dark) .text-gray-200 {
+  color: #1E293B;
+}
+
+html:not(.dark) .text-gray-300 {
+  color: #334155;
+}
+
+html:not(.dark) .text-gray-400 {
+  color: #475569;
+}
+
+html:not(.dark) .text-gray-500 {
+  color: #64748B;
+}
+
+html:not(.dark) .hover\:text-white:hover {
+  color: #000000;
+}
+
+/* Keep text crisp dark on gold buttons & pills */
+html:not(.dark) .gold-button-gradient,
+html:not(.dark) .gold-button-gradient *,
+html:not(.dark) .bg-gold-500,
+html:not(.dark) .bg-gold-500 * {
+  color: #07090E !important;
+}
+
+/* Preserve white text on dark solid colored buttons (purple, blue, emerald, red) */
+html:not(.dark) .bg-purple-600,
+html:not(.dark) .bg-purple-600 *,
+html:not(.dark) .bg-purple-500,
+html:not(.dark) .bg-purple-500 *,
+html:not(.dark) .bg-blue-600,
+html:not(.dark) .bg-blue-600 *,
+html:not(.dark) .bg-blue-500,
+html:not(.dark) .bg-blue-500 *,
+html:not(.dark) .bg-emerald-600,
+html:not(.dark) .bg-emerald-600 *,
+html:not(.dark) .bg-emerald-500,
+html:not(.dark) .bg-emerald-500 *,
+html:not(.dark) .bg-red-600,
+html:not(.dark) .bg-red-600 *,
+html:not(.dark) .bg-red-500,
+html:not(.dark) .bg-red-500 * {
+  color: #FFFFFF !important;
+}
+
+/* Form Inputs in Light Mode */
+html:not(.dark) input,
+html:not(.dark) select,
+html:not(.dark) textarea {
+  color: #0F172A !important;
+  background-color: #FFFFFF !important;
+  border-color: rgba(212, 175, 55, 0.4) !important;
+}
+
+html:not(.dark) input::placeholder,
+html:not(.dark) textarea::placeholder {
+  color: #94A3B8 !important;
+}
+
+/* ============================================================
+   LUXURY GOLD EFFECTS
+   ============================================================ */
+.gold-gradient-text {
+  background: linear-gradient(135deg, #B8860B 0%, #D4AF37 50%, #946B08 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+html.dark .gold-gradient-text {
+  background: linear-gradient(135deg, #FFF0CA 0%, #D4AF37 50%, #AA7C11 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.gold-button-gradient {
+  background: linear-gradient(135deg, #E5C07B 0%, #D4AF37 50%, #B8860B 100%);
+  transition: all 0.3s ease;
+}
+
+.gold-button-gradient:hover {
+  background: linear-gradient(135deg, #F3D28E 0%, #E0BC45 50%, #C99615 100%);
+  box-shadow: 0 0 25px rgba(212, 175, 55, 0.45);
+  transform: translateY(-2px);
+}
+
+.glass-card {
+  background: rgba(15, 22, 38, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(212, 175, 55, 0.2);
+}
+
+.tool-card {
+  background: rgba(11, 15, 25, 0.85);
+  border: 1px solid rgba(212, 175, 55, 0.18);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.tool-card:hover {
+  border-color: rgba(212, 175, 55, 0.6);
+  transform: translateY(-3px);
+  box-shadow: 0 10px 30px -5px rgba(212, 175, 55, 0.2);
+}

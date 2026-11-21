@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+  <meta charset="utf-8"/>
+  <title>وثيقة التوثيق الهندسي والاستراتيجي الشامل - RenderLancer & Render Group Studio</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+
+  <style>
+    @page {
+      size: A4;
+      margin: 18mm 15mm;
+      @bottom-right {
+        content: "Render Group • وثيقة التوثيق الفني";
+        font-family: 'IBM Plex Sans Arabic', sans-serif;
+        font-size: 8pt;
+        color: #718096;
+      }
+      @bottom-left {
+        content: counter(page);
+        font-family: 'IBM Plex Sans Arabic', sans-serif;
+        font-size: 8pt;
+        color: #718096;
+      }
+    }
+
+    body {
+      font-family: 'IBM Plex Sans Arabic', sans-serif;
+      color: #1A202C;
+      background: #FFFFFF;
+      line-height: 1.6;
+      font-size: 10.5pt;
+      margin: 0;
+      padding: 0;
+    }
+
+    .cover-page {
+      page-break-after: always;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      min-height: 90vh;
+      border: 2px solid #D4AF37;
+      border-radius: 12px;
+      padding: 40px;
+      background: linear-gradient(180deg, #07090E 0%, #0F1626 100%);
+      color: #FFFFFF;
+      text-align: center;
+    }
+
+    .cover-badge {
+      display: inline-block;
+      margin: 0 auto 20px auto;
+      padding: 6px 16px;
+      background: rgba(212, 175, 55, 0.15);
+      border: 1px solid #D4AF37;
+      color: #D4AF37;
+      border-radius: 20px;
+      font-size: 10pt;
+      font-weight: 600;
+    }
+
+    .cover-title {
+      font-size: 28pt;
+      font-weight: 700;
+      color: #FFFFFF;
+      margin: 0 0 10px 0;
+      line-height: 1.3;
+    }
+
+    .cover-title span {
+      color: #D4AF37;
+    }
+
+    .cover-subtitle {
+      font-size: 13pt;
+      color: #CBD5E0;
+      max-width: 650px;
+      margin: 0 auto 30px auto;
+      line-height: 1.6;
+    }
+
+    .cover-meta {
+      margin-top: 50px;
+      padding-top: 25px;
+      border-top: 1px solid rgba(212, 175, 55, 0.3);
+      display: flex;
+      justify-content: space-around;
+      font-size: 9pt;
+      color: #A0AEC0;
+    }
+
+    .cover-meta strong {
+      color: #D4AF37;
+      display: block;
+      font-size: 11pt;
+      margin-bottom: 4px;
+    }
+
+    h1, h2, h3, h4 {
+      font-weight: 700;
+      color: #07090E;
+    }
+
+    h1 {
+      font-size: 18pt;
+      border-bottom: 2px solid #D4AF37;
+      padding-bottom: 6px;
+      margin-top: 30px;
+      margin-bottom: 16px;
+    }
+
+    h2 {
+      font-size: 14pt;
+      color: #946B08;
+      margin-top: 20px;
+      margin-bottom: 10px;
+    }
+
+    h3 {
+      font-size: 12pt;
+      margin-top: 16px;
+      margin-bottom: 8px;
+    }
+
+    p {
+      margin-top: 0;
+      margin-bottom: 12px;
+      text-align: justify;
+    }
+
+    .page-break {
+      page-break-after: always;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 16px 0;
+      font-size: 9.5pt;
+    }
+
+    th, td {
+      border: 1px solid #E2E8F0;
+      padding: 8px 12px;
+      text-align: right;
+    }
+
+    th {
+      background-color: #0F1626;
+      color: #D4AF37;
+      font-weight: 600;
+    }
+
+    tr:nth-child(even) {
+      background-color: #F8FAFC;
+    }
+
+    .callout {
+      border-right: 4px solid #D4AF37;
+      background: #FAF8F2;
+      padding: 12px 16px;
+      margin: 16px 0;
+      border-radius: 0 8px 8px 0;
+    }
+
+    .callout-title {
+      font-weight: 700;
+      color: #946B08;
+      margin-bottom: 4px;
+    }
+
+    ul, ol {
+      margin-top: 0;
+      margin-bottom: 12px;
+      padding-right: 20px;
+    }
+
+    li {
+      margin-bottom: 6px;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      background: #EDF2F7;
+      border: 1px solid #CBD5E0;
+      border-radius: 4px;
+      font-size: 8.5pt;
+      font-weight: 600;
+    }
+
+    .gold-badge {
+      background: rgba(212, 175, 55, 0.15);
+      border-color: #D4AF37;
+      color: #946B08;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ================= COVER PAGE ================= -->
+  <div class="cover-page">
+    <div class="cover-badge">وثيقة المواصفات الهندسية والاستراتيجية الكاملة</div>
+    <div class="cover-title">
+      RENDER<span>LANCER</span> <br/>
+      & RENDER GROUP STUDIO
+    </div>
+    <div class="cover-subtitle">
+      المنظومة الرقمية الموحدة لتمكين الكفاءات الفلسطينية: سوق العمل الحر، صانع السير الذاتية بالذكاء الاصطناعي (ATS)، وترسانة أدوات الإبداع الرقمي الـ 12 الموحدة.
+    </div>
+
+    <div class="cover-meta">
+      <div>
+        <strong>الجهة المالكة</strong>
+        Render Group Ecosystem
+      </div>
+      <div>
+        <strong>تاريخ الإصدار</strong>
+        نوفمبر 2026
+      </div>
+      <div>
+        <strong>النسخة</strong>
+        Release 1.0 (Enterprise)
+      </div>
+      <div>
+        <strong>نوع الوثيقة</strong>
+        Technical & Strategic Dossier
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= SECTION 1 ================= -->
+  <h1>1. الملخص التنفيذي والرؤية الاستراتيجية (Executive Summary)</h1>
+  
+  <p>
+    مشروع <strong>RenderLancer</strong> هو منظومة تقنية متكاملة تابعة لمجموعة <strong>Render Group</strong>، صُممت خصيصاً كحل جذري للتحديات الاقتصادية والتقنية التي تواجه الكفاءات والمواهب الفلسطينية في قطاع غزة والضفة الغربية والشتات. المنظومة تدمج بين ثلاثة مسارات استراتيجية غير مسبوقة في منصة واحدة:
+  </p>
+
+  <ol>
+    <li><strong>سوق العمل الحر والتشبيك الدولي (Freelance Marketplace):</strong> ربط مباشر بين المستقلين والشركات التابعة لرواد الأعمال الفلسطينيين في الشتات (الخليج، أوروبا، وأمريكا) والمؤسسات العالمية، مع كسر قيود الحظر المصرفي عبر بوابات سحب محلية ورقمية مرنة (USDT, Payoneer, بنك فلسطين).</li>
+    <li><strong>صانع السير الذاتية الذكي (AI CV & Resume Studio):</strong> أداة مدمجة تعتمد على الذكاء الاصطناعي لفحص السير وفق أنظمة الفرز العالمية (ATS Scanner) وإعادة صياغة المهام السابقة إلى إنجازات رقمية مبهرة بنقرة واحدة، مما يرفع نسب القبول الدولي.</li>
+    <li><strong>استوديو أدوات الذكاء الاصطناعي الموحد (Render Group Studio):</strong> مركز تحكم شامل يضم 12 أداة ذكاء اصطناعي رائدة عالمياً (Veo 3.1, Seedance 2.0, GPT Image 2, Nano Banana Pro, Virtual Try-on, AI Avatar...)، مع إمكانية إدارة الاشتراكات والدفع مباشرة من أرباح العمل الحر دون الحاجة لبطاقات بنكية أجنبية.</li>
+  </ol>
+
+  <div class="callout">
+    <div class="callout-title">القيمة المضافة التنافسية مقارنة بالمنصات التقليدية (مثل Netloopers):</div>
+    المنصات الكلاسيكية تقتصر على كونها دليل خدمات كلاسيكي (خدمات مصغرة وتقديم يدوي). في المقابل، توفر <strong>RenderLancer</strong> ذكاءً اصطناعياً استباقياً يبحث ويطابق الوظائف، يصنع السير الذاتية المتوافقة مع ATS، ويوفر الأدوات الإنتاجية للمستقل نفسه، مما يضمن له الجاهزية والإنتاجية وسرعة تحقيق الأرباح.
+  </div>
+
+  <!-- ================= SECTION 2 ================= -->
+  <div class="page-break"></div>
+  <h1>2. المعمارية التقنية للمنظومة (System Architecture)</h1>
+
+  <p>
+    تعتمد المنصة معمارية <strong>Full-Stack Modern Modular Monolith</strong> فائقة الأداء مبنية على:
+  </p>
+  <ul>
+    <li><strong>Next.js 15 (App Router) & React 19:</strong> واجهة تفاعلية لحظية تدعم المعايير الحديثة، مع أداء SEO ممتاز لصفحات المستقلين والمشاريع.</li>
+    <li><strong>Tailwind CSS & IBM Plex Sans Arabic:</strong> تصميم وقور ومهني يعتمد اللون الذهبي الفاخر كرمز للقوة والموثوقية، مع خط عربي هندسي صارم ومريح للعين خالي من انحناءات الخطوط غير الرسمية.</li>
+    <li><strong>PostgreSQL مع امتداد `pgvector`:</strong> قاعدة بيانات علائقية متينة تدعم المتجهات الرياضية بحجم 1536 بُعد لإجراء البحث الدلالي ومطابقة الوظائف آلياً.</li>
+    <li><strong>Google Gemini API & Vercel AI SDK:</strong> محرك فائق السرعة لدعم التوليد اللحظي (Streaming) واقتراحات السيرة الذاتية وكتابة عروض المشاريع.</li>
+  </ul>
+
+  <h2>المخطط الهيكلي للنظام ومسار البيانات</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>الطبقة (Layer)</th>
+        <th>المكونات والتقنيات المعتمدة</th>
+        <th>الدور والمسؤولية الوظيفية</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Client Layer</strong></td>
+        <td>Next.js 15, Tailwind, Zustand, React-PDF</td>
+        <td>تجربة مستخدم سريعة، صانع سيرة تفاعلي، وتجاوب كامل مع RTL.</td>
+      </tr>
+      <tr>
+        <td><strong>App & Services Layer</strong></td>
+        <td>Server Actions, Auth, Escrow Service</td>
+        <td>معالجة المنطق التجاري، حماية المدفوعات، وإدارة الجلسات.</td>
+      </tr>
+      <tr>
+        <td><strong>AI Engine Layer</strong></td>
+        <td>Gemini 2.5 Flash, Render AI Microservices</td>
+        <td>تحسين السير الذاتية، فحص الـ ATS، وتشغيل أدوات الفيديو والصور.</td>
+      </tr>
+      <tr>
+        <td><strong>Persistence Layer</strong></td>
+        <td>PostgreSQL (pgvector), Cloudflare R2</td>
+        <td>تخزين البيانات المالية، ملفات الـ PDF، وسجلات التوليد.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- ================= SECTION 3 ================= -->
+  <div class="page-break"></div>
+  <h1>3. ترسانة أدوات الذكاء الاصطناعي الـ 12 (Render Group Studio)</h1>
+
+  <p>
+    يوفر الاستوديو 12 أداة احترافية تغطي كافة متطلبات العمل الرقمي الحديث، تمكن المستقل الفلسطيني من المنافسة كأقوى وكالة إبداعية عالمية:
+  </p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>الأداة</th>
+        <th>التصنيف</th>
+        <th>الوظيفة والقدرات الإبداعية</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>1. ريندر شات (Render Chat)</strong></td>
+        <td>المساعد اللغوي</td>
+        <td>مساعد ذكي للإجابة عن الأسئلة، كتابة الأكواد، تحليل الصور، والبحث المباشر.</td>
+      </tr>
+      <tr>
+        <td><strong>2. GPT Image 2</strong></td>
+        <td>الصور والتصميم</td>
+        <td>توليد وتحويل الصور مع دعم مراجع متعددة لإنشاء شخصيات بصرية ثابتة.</td>
+      </tr>
+      <tr>
+        <td><strong>3. نانو بنانا برو (Nano Banana)</strong></td>
+        <td>معالجة الصور 4K</td>
+        <td>تعديل الصور بسرعة فائقة، تفريغ الخلفيات، وتحسين الدقة لـ 4K Ultra HD.</td>
+      </tr>
+      <tr>
+        <td><strong>4. Seedance 2.0</strong></td>
+        <td>محاكاة الحركة والسينما</td>
+        <td>توليد سينمائي يحاكي فيزياء الحركة الواقعية بدعم ByteDance & Kling v5.</td>
+      </tr>
+      <tr>
+        <td><strong>5. Veo 3.1</strong></td>
+        <td>الفيديو السينمائي</td>
+        <td>تحويل النصوص والصور إلى لقطات فيديو سينمائية عالية الواقعية.</td>
+      </tr>
+      <tr>
+        <td><strong>6. انتقال فريمين (Omni)</strong></td>
+        <td>المؤثرات السينمائية</td>
+        <td>دمج فريم البداية وفريم النهاية لخلق انتقال ناعم مع مؤثرات صوتية تلقائية.</td>
+      </tr>
+      <tr>
+        <td><strong>7. محرك الحركة (Motion Master)</strong></td>
+        <td>التحريك والموشن</td>
+        <td>التحكم في مسارات الحركة وتوجيه العناصر في الإعلانات الترويجية.</td>
+      </tr>
+      <tr>
+        <td><strong>8. استوديو التصوير (Virtual Studio)</strong></td>
+        <td>تصوير المنتجات</td>
+        <td>جلسات تصوير واقعية للمنتجات والأشخاص بإضاءات مخصصة للتجارة الإلكترونية.</td>
+      </tr>
+      <tr>
+        <td><strong>9. تبديل الوجوه (Face Swap)</strong></td>
+        <td>الهوية والوجوه</td>
+        <td>تبديل ملامح الوجه أو الشخص بالكامل في الصور والفيديوهات بدقة متناهية.</td>
+      </tr>
+      <tr>
+        <td><strong>10. القياس الافتراضي (Virtual Try-on)</strong></td>
+        <td>الأزياء والمتاجر</td>
+        <td>تجربة الملابس افتراضياً على الصور الشخصية بدقة متوافقة مع مقاييس الجسم.</td>
+      </tr>
+      <tr>
+        <td><strong>11. استخراج البرومبت (Prompt Extractor)</strong></td>
+        <td>الهندسة العكسية</td>
+        <td>استخراج البرومبت الدقيق من أي صورة لإعادة إنتاج صور متطابقة.</td>
+      </tr>
+      <tr>
+        <td><strong>12. أفتار الذكاء الاصطناعي (AI Avatar)</strong></td>
+        <td>الفيديو البشري</td>
+        <td>تحويل الصور لأفتار متحدث مع مزامنة متقنة لحركة الشفاه وتعبيرات الوجه.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- ================= SECTION 4 ================= -->
+  <div class="page-break"></div>
+  <h1>4. نموذج إدارة وتفعيل الاشتراكات (Subscription & Wallet Rails)</h1>
+
+  <div class="callout">
+    <div class="callout-title">الابتكار المالي: كسر عائق بطاقات الدفع الأجنبية</div>
+    تتيح المنصة للمستقل تفعيل باقات أدوات الذكاء الاصطناعي بثلاث طرق رئيسية تناسب الواقع الفلسطيني:
+  </div>
+
+  <ol>
+    <li><strong>الفترة التجريبية المجانية (24-Hour Pass):</strong> تفعيل فوري لكافة الأدوات الـ 12 لمدة 24 ساعة بمجرد إنشاء الحساب، مع عداد تنازلي دقيق.</li>
+    <li><strong>أكواد التفعيل المسبقة (Activation Codes):</strong> أكواد مرخصة (مثل <code>RENDER-GOLD-2026</code>) يتم توزيعها عبر وكلاء محليين، أو شراكات جامعية، مما يتيح الشراء بالعملة المحلية نقداً أو عبر المحافظ الإلكترونية.</li>
+    <li><strong>الدفع المباشر من أرباح العمل الحر (Wallet Pay):</strong> يستطيع المستقل استخدام رصيده المكتسب من إنجاز المشاريع في RenderLancer لشراء وتجديد أدوات الذكاء الاصطناعي دون الحاجة لبطاقة فيزا.</li>
+  </ol>
+
+  <h2>قنوات السحب المالي المعتمدة للمواهب الفلسطينية</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>القناة المالية</th>
+        <th>الميزة الاستراتيجية</th>
+        <th>سرعة التحويل</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>USDT (Crypto TRC-20)</strong></td>
+        <td>تجاوز الحصار المالي والقيود المصرفية بدون عمولات وسيطة.</td>
+        <td>فوري (خلال دقائق)</td>
+      </tr>
+      <tr>
+        <td><strong>Payoneer</strong></td>
+        <td>استلام الأموال لحساب بايونير والتحويل للحسابات البنكية.</td>
+        <td>خلال 24 ساعة</td>
+      </tr>
+      <tr>
+        <td><strong>Bank of Palestine (آيبان محلي)</strong></td>
+        <td>إيداع مباشر في البنوك العاملة في فلسطين للحسابات الموثقة.</td>
+        <td>1 - 2 يوم عمل</td>
+      </tr>
+      <tr>
+        <td><strong>المحافظ الإلكترونية (PalPay / Jawwal Pay)</strong></td>
+        <td>سحب نقدي سهل وسريع للأفراد والشباب بدون حساب بنكي.</td>
+        <td>فوري أو نفس اليوم</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- ================= SECTION 5 ================= -->
+  <div class="page-break"></div>
+  <h1>5. خاتمة وخارطة طريق التنفيذ (Roadmap & Next Steps)</h1>
+
+  <p>
+    تمثل هذه المنظومة نقلة نوعية تضع <strong>Render Group</strong> في صدارة الابتكار التقني في المنطقة، من خلال دمج العمل الحر، أدوات التوظيف بالذكاء الاصطناعي، واستوديو الأدوات الإبداعية في مكان واحد.
+  </p>
+
+  <h2>مراحل الإطلاق المعتمدة (Phases):</h2>
+  <ul>
+    <li><strong>المرحلة 1 (المنجزة):</strong> تصميم الواجهة الفاخرة، اعتماد خط IBM Plex Sans Arabic، اللوحة الذهبية، وإعداد مخططات قاعدة البيانات والهندسة المعمارية.</li>
+    <li><strong>المرحلة 2 (التطوير البرمجي):</strong> إطلاق تطبيق Next.js 15، ربط جداول Prisma، وتهيئة نظام التوثيق الموحد (SSO) والمحفظة الرقمية.</li>
+    <li><strong>المرحلة 3 (التكامل مع الذكاء الاصطناعي):</strong> تفعيل صانع السيرة الذاتية (ATS Engine) ومحرك مطابقة المشاريع بالـ Vector Embeddings، وإتاحة بوابة تفعيل الأدوات الـ 12.</li>
+    <li><strong>المرحلة 4 (الإطلاق التجريبي):</strong> إطلاق المنصة لـ 500 كفاءة فلسطينية في غزة والضفة والشتات، وتوزيع أكواد التفعيل التجريبية.</li>
+  </ul>
+
+  <div style="margin-top: 40px; text-align: center; border-top: 1px solid #E2E8F0; padding-top: 20px;">
+    <p style="font-weight: 700; color: #946B08;">Render Group • جميع الحقوق محفوظة لـ RenderLancer Studio 2026</p>
+    <p style="font-size: 8.5pt; color: #718096;">تم إعداد هذه الوثيقة وتوثيقها برمجياً وهندسياً لدعم وتمكين الكفاءات الفلسطينية عالمياً.</p>
+  </div>
+
+</body>
+</html>

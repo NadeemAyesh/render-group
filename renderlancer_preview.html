@@ -1,0 +1,897 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+  <title>RenderLancer & Render Group Studio | منصة العمل الحر واستوديو أدوات الذكاء الاصطناعي الشامل</title>
+  
+  <!-- Google Fonts: IBM Plex Sans Arabic -->
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+  
+  <!-- Google Material Symbols -->
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"IBM Plex Sans Arabic"', 'sans-serif'],
+          },
+          colors: {
+            gold: {
+              50: '#FDFBF4',
+              100: '#FAF3E3',
+              200: '#F4E3BA',
+              300: '#EDCE8B',
+              400: '#E4B85C',
+              500: '#D4AF37', /* Main Brand Gold */
+              600: '#B8860B', /* Dark Rich Gold */
+              700: '#946B08',
+              800: '#755307',
+              900: '#523A05',
+              glow: 'rgba(212, 175, 55, 0.25)',
+            },
+            dark: {
+              950: '#07090E', /* Obsidian Base */
+              900: '#0B0F19', /* Card Base */
+              850: '#0F1626',
+              800: '#141D32',
+              700: '#1E2B4A',
+              600: '#2A3B66',
+            }
+          }
+        }
+      }
+    };
+  </script>
+
+  <style>
+    body {
+      font-family: 'IBM Plex Sans Arabic', sans-serif;
+      background-color: #07090E;
+      color: #E2E8F0;
+      overflow-x: hidden;
+    }
+    
+    .gold-gradient-text {
+      background: linear-gradient(135deg, #FFF0CA 0%, #D4AF37 50%, #AA7C11 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    
+    .gold-button-gradient {
+      background: linear-gradient(135deg, #E5C07B 0%, #D4AF37 50%, #B8860B 100%);
+      transition: all 0.3s ease;
+    }
+    
+    .gold-button-gradient:hover {
+      background: linear-gradient(135deg, #F3D28E 0%, #E0BC45 50%, #C99615 100%);
+      box-shadow: 0 0 25px rgba(212, 175, 55, 0.45);
+      transform: translateY(-2px);
+    }
+    
+    .glass-card {
+      background: rgba(15, 22, 38, 0.75);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(212, 175, 55, 0.2);
+    }
+
+    .tool-card {
+      background: rgba(11, 15, 25, 0.85);
+      border: 1px solid rgba(212, 175, 55, 0.18);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .tool-card:hover {
+      border-color: rgba(212, 175, 55, 0.6);
+      transform: translateY(-3px);
+      box-shadow: 0 10px 30px -5px rgba(212, 175, 55, 0.2);
+    }
+  </style>
+</head>
+
+<body class="antialiased selection:bg-gold-500 selection:text-dark-950">
+
+  <!-- ================= TOP TRIAL & NOTIFICATION TICKER ================= -->
+  <div class="bg-dark-900 border-b border-gold-500/20 py-2 px-6 text-xs text-gray-300">
+    <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
+      <div class="flex items-center gap-2">
+        <span class="flex h-2 w-2 relative">
+          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-gold-400 opacity-75"></span>
+          <span class="relative inline-flex rounded-full h-2 w-2 bg-gold-500"></span>
+        </span>
+        <span class="text-gold-400 font-semibold">حسابك التجريبي نشط:</span>
+        <span>الفترة التجريبية الشاملة لكافة الأدوات الـ 12 تنتهي خلال: <strong class="text-white font-mono bg-dark-800 px-2 py-0.5 rounded border border-gold-500/30">23 ساعة و 51 دقيقة</strong></span>
+      </div>
+      <div class="flex items-center gap-3">
+        <button onclick="document.getElementById('activation-modal').classList.remove('hidden')" class="text-gold-400 hover:text-white underline font-bold flex items-center gap-1">
+          <span class="material-symbols-outlined text-[14px]">key</span>
+          أدخل رمز التفعيل
+        </button>
+        <span class="text-gray-600">|</span>
+        <span class="text-gray-400">رصيد محفظة العمل الحر: <strong class="text-emerald-400 font-mono">$120.00</strong></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= NAVBAR ================= -->
+  <header class="sticky top-0 w-full z-50 bg-dark-950/90 backdrop-blur-xl border-b border-gold-500/20">
+    <div class="max-w-7xl mx-auto px-6 lg:px-12 h-20 flex items-center justify-between">
+      
+      <!-- Brand Logo -->
+      <div class="flex items-center gap-4">
+        <a href="#" class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl gold-button-gradient flex items-center justify-center text-dark-950 font-bold shadow-lg shadow-gold-500/20">
+            <span class="material-symbols-outlined text-[26px]">all_inclusive</span>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="text-xl font-bold tracking-tight text-white">Render<span class="text-gold-500">Lancer</span></span>
+              <span class="text-[10px] px-2 py-0.5 rounded-full bg-gold-500/10 text-gold-400 border border-gold-500/30 font-medium">Studio Ecosystem</span>
+            </div>
+            <span class="text-[10px] text-gray-400 block -mt-0.5">منصة العمل الحر وترسانة أدوات الذكاء الاصطناعي الموحدة</span>
+          </div>
+        </a>
+
+        <!-- Navigation Links -->
+        <nav class="hidden xl:flex items-center gap-6 mr-8 text-sm font-medium text-gray-300">
+          <a href="#" class="text-gold-400 font-semibold flex items-center gap-1">الرئيسية</a>
+          <a href="#ai-studio-hub" class="hover:text-gold-400 transition-colors flex items-center gap-1.5 text-white font-semibold">
+            <span class="material-symbols-outlined text-[18px] text-gold-500">token</span>
+            استوديو أدوات الـ AI (12)
+          </a>
+          <a href="#ai-cv" class="hover:text-gold-400 transition-colors flex items-center gap-1">
+            <span class="material-symbols-outlined text-[16px] text-gold-500">auto_awesome</span>
+            صانع السيرة الذاتية (ATS)
+          </a>
+          <a href="#diaspora" class="hover:text-gold-400 transition-colors">شبكة الشتات</a>
+          <a href="#talents" class="hover:text-gold-400 transition-colors">الكفاءات والمستقلون</a>
+        </nav>
+      </div>
+
+      <!-- User & Quick Action Buttons -->
+      <div class="flex items-center gap-3">
+        <div class="hidden md:flex items-center gap-2.5 px-3 py-1.5 rounded-xl bg-dark-900 border border-gold-500/25">
+          <div class="w-7 h-7 rounded-full bg-gold-500 text-dark-950 font-bold text-xs flex items-center justify-center">
+            ع.ج
+          </div>
+          <div class="text-right">
+            <span class="block text-xs font-bold text-white">عزة الجمل</span>
+            <span class="block text-[9px] text-gold-400">فترة تجريبية (24 ساعة)</span>
+          </div>
+        </div>
+
+        <button onclick="document.getElementById('activation-modal').classList.remove('hidden')" class="px-4 py-2 rounded-xl gold-button-gradient text-dark-950 font-bold text-xs flex items-center gap-1.5 shadow-md">
+          <span class="material-symbols-outlined text-[16px]">vpn_key</span>
+          <span>تفعيل اشتراك</span>
+        </button>
+      </div>
+
+    </div>
+  </header>
+
+  <main>
+    <!-- ================= HERO SECTION ================= -->
+    <section class="relative flex flex-col justify-center items-center overflow-hidden border-b border-gold-500/15 py-16 lg:py-24">
+      <div class="absolute top-1/4 right-1/4 w-[500px] h-[500px] bg-gold-500/10 rounded-full blur-[140px] pointer-events-none"></div>
+      <div class="absolute bottom-10 left-1/4 w-[400px] h-[400px] bg-gold-600/10 rounded-full blur-[120px] pointer-events-none"></div>
+      
+      <div class="relative max-w-5xl mx-auto px-6 text-center z-10 flex flex-col items-center">
+        
+        <div class="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-dark-850/90 border border-gold-500/30 backdrop-blur-md mb-8 shadow-xl">
+          <span class="material-symbols-outlined text-gold-400 text-[18px]">verified</span>
+          <span class="text-xs font-semibold text-gold-300 tracking-wide">
+            منظومة Render Group الموحدة: العمل الحر + استوديو الذكاء الاصطناعي الشامل
+          </span>
+        </div>
+
+        <h1 class="text-4xl md:text-6xl font-bold leading-tight md:leading-[1.2] text-white">
+          RENDER GROUP <span class="gold-gradient-text">STUDIO & FREELANCE</span>
+        </h1>
+
+        <p class="mt-6 text-base md:text-lg text-gray-300 max-w-3xl leading-relaxed">
+          منصتك الشاملة للإبداع الرقمي والعمل الحر. نصنع المستقبل بتمكين الكفاءات الفلسطينية بأدوات الذكاء الاصطناعي الأكثر تطوراً في العالم، مع إدارة اشتراكاتك وصنع سيرتك الذاتية في مكان واحد.
+        </p>
+
+        <!-- Search Bar with AI Mode -->
+        <div class="w-full max-w-3xl mt-10 p-2.5 rounded-2xl glass-card shadow-2xl">
+          <div class="flex items-center justify-between mb-2 px-2 border-b border-gold-500/15 pb-2">
+            <div class="flex items-center gap-3">
+              <button class="text-xs font-bold px-3 py-1 rounded-lg bg-gold-500 text-dark-950 flex items-center gap-1.5 shadow-sm">
+                <span class="material-symbols-outlined text-[16px]">search</span>
+                البحث عن وظائف ومشاريع
+              </button>
+              <a href="#ai-studio-hub" class="text-xs font-semibold px-3 py-1 rounded-lg text-gold-400 hover:bg-gold-500/10 flex items-center gap-1.5 transition-colors">
+                <span class="material-symbols-outlined text-[16px]">bolt</span>
+                فتح أدوات الذكاء الاصطناعي (12)
+              </a>
+            </div>
+            <span class="text-[11px] text-gray-400 hidden sm:block">+2,400 فرصة نشطة</span>
+          </div>
+
+          <div class="flex flex-col md:flex-row items-center gap-2">
+            <div class="w-full md:w-56 flex items-center gap-2 px-4 py-3 bg-dark-950/80 rounded-xl border border-gold-500/20">
+              <span class="material-symbols-outlined text-gold-500 text-[18px]">category</span>
+              <select class="bg-transparent text-xs font-medium text-gray-200 focus:outline-none cursor-pointer w-full">
+                <option value="all" class="bg-dark-900">كل التصنيفات</option>
+                <option value="ai" class="bg-dark-900">الذكاء الاصطناعي</option>
+                <option value="dev" class="bg-dark-900">البرمجة والتطوير</option>
+                <option value="design" class="bg-dark-900">التصميم والمونتاج</option>
+              </select>
+            </div>
+
+            <div class="w-full flex-1 flex items-center px-4 py-3 bg-dark-950/80 rounded-xl border border-gold-500/20">
+              <span class="material-symbols-outlined text-gold-500/70 text-[20px] ml-2">search</span>
+              <input type="text" placeholder="ما هي الخدمة أو المهارة التي تبحث عنها اليوم؟" class="w-full bg-transparent text-xs md:text-sm text-white placeholder:text-gray-500 focus:outline-none"/>
+            </div>
+
+            <button class="w-full md:w-auto px-8 py-3.5 rounded-xl gold-button-gradient text-dark-950 font-bold text-sm flex items-center justify-center gap-2 shrink-0">
+              <span>ابحث الآن</span>
+              <span class="material-symbols-outlined text-[18px]">arrow_back</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Metric Counters -->
+        <div class="mt-12 w-full max-w-4xl grid grid-cols-2 md:grid-cols-4 gap-4 p-5 rounded-2xl glass-card">
+          <div class="flex flex-col items-center">
+            <span class="text-3xl font-bold gold-gradient-text">12 أداة</span>
+            <span class="text-xs text-gray-400 mt-1">ذكاء اصطناعي موحدة بالكامل</span>
+          </div>
+          <div class="flex flex-col items-center">
+            <span class="text-3xl font-bold text-white">+3,450</span>
+            <span class="text-xs text-gray-400 mt-1">كفاءة ومستقل فلسطيني</span>
+          </div>
+          <div class="flex flex-col items-center">
+            <span class="text-3xl font-bold gold-gradient-text">+180</span>
+            <span class="text-xs text-gray-400 mt-1">شركة في الشتات والعالم</span>
+          </div>
+          <div class="flex flex-col items-center">
+            <span class="text-3xl font-bold text-white">0$ فيزا</span>
+            <span class="text-xs text-gray-400 mt-1">تفعيل الأدوات من أرباحك مباشرة</span>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ================= THE 12 AI TOOLS & SUBSCRIPTION HUB ================= -->
+    <section id="ai-studio-hub" class="max-w-7xl mx-auto px-6 lg:px-12 py-20 relative">
+      <div class="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
+        <div>
+          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gold-500/10 border border-gold-500/30 text-gold-400 text-xs font-bold mb-3">
+            <span class="material-symbols-outlined text-[16px]">stars</span>
+            مركز اشتراكات أدوات الذكاء الاصطناعي الموحد
+          </div>
+          <h2 class="text-3xl md:text-4xl font-bold text-white">
+            أدواتنا <span class="gold-gradient-text">الاحترافية</span>
+          </h2>
+          <p class="text-gray-400 text-sm mt-1">اختر الأداة المناسبة لمشروعك الإبداعي القادم، أو تحكم باشتراكاتك وفترتك التجريبية</p>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-3">
+          <button onclick="document.getElementById('activation-modal').classList.remove('hidden')" class="px-5 py-2.5 rounded-xl gold-button-gradient text-dark-950 font-bold text-xs flex items-center gap-2 shadow-lg">
+            <span class="material-symbols-outlined text-[16px]">key</span>
+            تفعيل كود أو باقة شاملة
+          </button>
+          <div class="flex items-center bg-dark-900 border border-gold-500/20 rounded-xl p-1">
+            <button class="px-3 py-1.5 rounded-lg bg-gold-500 text-dark-950 text-xs font-bold flex items-center gap-1 shadow-sm">
+              <span class="material-symbols-outlined text-[16px]">grid_view</span>
+              عرض شبكي
+            </button>
+            <button class="px-3 py-1.5 rounded-lg text-gray-400 hover:text-white text-xs font-medium flex items-center gap-1">
+              <span class="material-symbols-outlined text-[16px]">view_list</span>
+              عرض القائمة
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- THE 12 AI TOOLS GRID -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+
+        <!-- Tool 1: GPT Image 2 -->
+        <div class="tool-card p-6 rounded-2xl flex flex-col justify-between group">
+          <div>
+            <div class="flex items-center justify-between mb-4">
+              <div class="w-12 h-12 rounded-xl bg-gold-500/10 border border-gold-500/30 flex items-center justify-center text-gold-400 group-hover:bg-gold-500 group-hover:text-dark-950 transition-colors">
+                <span class="material-symbols-outlined text-[26px]">image_search</span>
+              </div>
+              <span class="text-[10px] px-2.5 py-1 rounded-full bg-gold-500/10 text-gold-400 border border-gold-500/30 font-medium">توليد الصور</span>
+            </div>
+            <h3 class="text-lg font-bold text-white mb-1.5">GPT Image 2</h3>
+            <p class="text-xs text-gray-400 leading-relaxed">
+              توليد وتحويل الصور باستخدام GPT Image 2 مع دعم الصور المرجعية المتعددة لإنشاء شخصيات وهوية بصرية ثابتة.
+            </p>
+          </div>
+          <div class="mt-6 pt-4 border-t border-gold-500/15 flex items-center justify-between">
+            <span class="text-[11px] text-emerald-400 flex items-center gap-1">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+              فترة تجريبية مفعلة
+            </span>
+            <button class="px-3 py-1.5 rounded-lg bg-dark-850 hover:bg-gold-500 hover:text-dark-950 text-gold-400 font-bold text-xs border border-gold-500/25 transition-all">
+              فتح الأداة
+            </button>
+          </div>
+        </div>
+
+        <!-- Tool 2: ريندر شات (Render Chat) -->
+        <div class="tool-card p-6 rounded-2xl flex flex-col justify-between group">
+          <div>
+            <div class="flex items-center justify-between mb-4">
+              <div class="w-12 h-12 rounded-xl bg-gold-500/10 border border-gold-500/30 flex items-center justify-center text-gold-400 group-hover:bg-gold-500 group-hover:text-dark-950 transition-colors">
+                <span class="material-symbols-outlined text-[26px]">chat</span>
+              </div>
+              <span class="text-[10px] px-2.5 py-1 rounded-full bg-gold-500/10 text-gold-400 border border-gold-500/30 font-medium">ذكاء لغوي</span>
+            </div>
+            <h3 class="text-lg font-bold text-white mb-1.5">ريندر شات (Render Chat)</h3>
+            <p class="text-xs text-gray-400 leading-relaxed">
+              مساعدك الذكي المتطور للإجابة على تساؤلاتك، تحليل الملفات والصور، والبحث في الويب بدقة متناهية وسرعة فائقة.
+            </p>
+          </div>
+          <div class="mt-6 pt-4 border-t border-gold-500/15 flex items-center justify-between">
+            <span class="text-[11px] text-emerald-400 flex items-center gap-1">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+              متاح مجاناً
+            </span>
+            <button class="px-3 py-1.5 rounded-lg bg-dark-850 hover:bg-gold-500 hover:text-dark-950 text-gold-400 font-bold text-xs border border-gold-500/25 transition-all">
+              بدء المحادثة
+            </button>
+          </div>
+        </div>
+
+        <!-- Tool 3: القياس الافتراضي (Virtual Try-on) -->
+        <div class="tool-card p-6 rounded-2xl flex flex-col justify-between group">
+          <div>
+            <div class="flex items-center justify-between mb-4">
+              <div class="w-12 h-12 rounded-xl bg-gold-500/10 border border-gold-500/30 flex items-center justify-center text-gold-400 group-hover:bg-gold-500 group-hover:text-dark-950 transition-colors">
+                <span class="material-symbols-outlined text-[26px]">apparel</span>
+              </div>
+              <span class="text-[10px] px-2.5 py-1 rounded-full bg-gold-500/20 text-gold-300 border border-gold-500/40 font-bold">تجربة حصرية</span>
+            </div>
+            <h3 class="text-lg font-bold text-white mb-1.5">القياس الافتراضي (Virtual Try-on)</h3>
+            <p class="text-xs text-gray-400 leading-relaxed">
+              جرّب الملابس افتراضياً على صورتك الشخصية بدقة متناهية ومطابقة لأبعاد الجسم باستخدام أحدث تقنيات الـ AI.
+            </p>
+          </div>
+          <div class="mt-6 pt-4 border-t border-gold-500/15 flex items-center justify-between">
+            <span class="text-[11px] text-gold-400">فترة تجريبية</span>
+            <button class="px-3 py-1.5 rounded-lg bg-dark-850 hover:bg-gold-500 hover:text-dark-950 text-gold-400 font-bold text-xs border border-gold-500/25 transition-all">
+              تجربة الأداة
+            </button>
+          </div>
+        </div>
+
+        <!-- Tool 4: Veo 3.1 -->
+        <div class="tool-card p-6 rounded-2xl flex flex-col justify-between group">
+          <div>
+            <div class="flex items-center justify-between mb-4">
+              <div class="w-12 h-12 rounded-xl bg-gold-500/10 border border-gold-500/30 flex items-center justify-center text-gold-400 group-hover:bg-gold-500 group-hover:text-dark-950 transition-colors">
+                <span class="material-symbols-outlined text-[26px]">videocam</span>
+              </div>
+              <span class="text-[10px] px-2.5 py-1 rounded-full bg-gold-500/10 text-gold-400 border border-gold-500/30 font-medium">سينما وسينماتيك</span>
+            </div>
+            <h3 class="text-lg font-bold text-white mb-1.5">Veo 3.1</h3>
+            <p class="text-xs text-gray-400 leading-relaxed">
+              تحويل الصور والنصوص إلى فيديو سينمائي مذهل فائق الواقعية باستخدام تقنية Veo 3.1 الأكثر تطوراً عالمياً.
+            </p>
+          </div>
+          <div class="mt-6 pt-4 border-t border-gold-500/15 flex items-center justify-between">
+            <span class="text-[11px] text-emerald-400">نشط (تجريبي)</span>
+            <button class="px-3 py-1.5 rounded-lg bg-dark-850 hover:bg-gold-500 hover:text-dark-950 text-gold-400 font-bold text-xs border border-gold-500/25 transition-all">
+              توليد فيديو
+            </button>
+          </div>
+        </div>
+
+        <!-- Tool 5: Seedance 2.0 -->
+        <div class="tool-card p-6 rounded-2xl flex flex-col justify-between group">
+          <div>
+            <div class="flex items-center justify-between mb-4">
+              <div class="w-12 h-12 rounded-xl bg-gold-500/10 border border-gold-500/30 flex items-center justify-center text-gold-400 group-hover:bg-gold-500 group-hover:text-dark-950 transition-colors">
+                <span class="material-symbols-outlined text-[26px]">auto_videocam</span>
+              </div>
+              <span class="text-[10px] px-2.5 py-1 rounded-full bg-gold-500/10 text-gold-400 border border-gold-500/30 font-medium">محاكاة حركة</span>
+            </div>
+            <h3 class="text-lg font-bold text-white mb-1.5">Seedance 2.0</h3>
+            <p class="text-xs text-gray-400 leading-relaxed">
+              نظام التوليد السينمائي المتطور لمحاكاة فيزياء الحركة الواقعية المدعوم بتقنية ByteDance و Kling v5 Omni.
+            </p>
+          </div>
+          <div class="mt-6 pt-4 border-t border-gold-500/15 flex items-center justify-between">
+            <span class="text-[11px] text-emerald-400">نشط</span>
+            <button class="px-3 py-1.5 rounded-lg bg-dark-850 hover:bg-gold-500 hover:text-dark-950 text-gold-400 font-bold text-xs border border-gold-500/25 transition-all">
+              فتح الأداة
+            </button>
+          </div>
+        </div>
+
+        <!-- Tool 6: تعديل نانو بنانا برو (Nano Banana Pro) -->
+        <div class="tool-card p-6 rounded-2xl flex flex-col justify-between group">
+          <div>
+            <div class="flex items-center justify-between mb-4">
+              <div class="w-12 h-12 rounded-xl bg-gold-500/10 border border-gold-500/30 flex items-center justify-center text-gold-400 group-hover:bg-gold-500 group-hover:text-dark-950 transition-colors">
+                <span class="material-symbols-outlined text-[26px]">edit_note</span>
+              </div>
+              <span class="text-[10px] px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 font-medium">سرعة خارقة 4K</span>
+            </div>
+            <h3 class="text-lg font-bold text-white mb-1.5">تعديل نانو بنانا برو (Nano Banana)</h3>
+            <p class="text-xs text-gray-400 leading-relaxed">
+              تعديل الصور بالذكاء الاصطناعي بسرعة فائقة ودقة 4K Ultra HD وتفريغ العناصر مع الحفاظ التام على أدق التفاصيل.
+            </p>
+          </div>
+          <div class="mt-6 pt-4 border-t border-gold-500/15 flex items-center justify-between">
+            <span class="text-[11px] text-emerald-400">نشط</span>
+            <button class="px-3 py-1.5 rounded-lg bg-dark-850 hover:bg-gold-500 hover:text-dark-950 text-gold-400 font-bold text-xs border border-gold-500/25 transition-all">
+              تحرير صورة
+            </button>
+          </div>
+        </div>
+
+        <!-- Tool 7: انتقال فريمين (Omni Transition) -->
+        <div class="tool-card p-6 rounded-2xl flex flex-col justify-between group">
+          <div>
+            <div class="flex items-center justify-between mb-4">
+              <div class="w-12 h-12 rounded-xl bg-gold-500/10 border border-gold-500/30 flex items-center justify-center text-gold-400 group-hover:bg-gold-500 group-hover:text-dark-950 transition-colors">
+                <span class="material-symbols-outlined text-[26px]">animation</span>
+              </div>
+              <span class="text-[10px] px-2.5 py-1 rounded-full bg-gold-500/10 text-gold-400 border border-gold-500/30 font-medium">انتقال سينمائي</span>
+            </div>
+            <h3 class="text-lg font-bold text-white mb-1.5">انتقال فريمين (Omni Transition)</h3>
+            <p class="text-xs text-gray-400 leading-relaxed">
+              ارفع فريم البداية والنهاية لخلق انتقال سينمائي مذهل مع مؤثرات صوتية تلقائية مطابقة تماماً للمشهد.
+            </p>
+          </div>
+          <div class="mt-6 pt-4 border-t border-gold-500/15 flex items-center justify-between">
+            <span class="text-[11px] text-emerald-400">نشط</span>
+            <button class="px-3 py-1.5 rounded-lg bg-dark-850 hover:bg-gold-500 hover:text-dark-950 text-gold-400 font-bold text-xs border border-gold-500/25 transition-all">
+              إنشاء انتقال
+            </button>
+          </div>
+        </div>
+
+        <!-- Tool 8: استخراج البرومبت (Prompt Extractor) -->
+        <div class="tool-card p-6 rounded-2xl flex flex-col justify-between group">
+          <div>
+            <div class="flex items-center justify-between mb-4">
+              <div class="w-12 h-12 rounded-xl bg-gold-500/10 border border-gold-500/30 flex items-center justify-center text-gold-400 group-hover:bg-gold-500 group-hover:text-dark-950 transition-colors">
+                <span class="material-symbols-outlined text-[26px]">manage_search</span>
+              </div>
+              <span class="text-[10px] px-2.5 py-1 rounded-full bg-gold-500/10 text-gold-400 border border-gold-500/30 font-medium">هندسة عكسية</span>
+            </div>
+            <h3 class="text-lg font-bold text-white mb-1.5">استخراج البرومبت (Prompt Extractor)</h3>
+            <p class="text-xs text-gray-400 leading-relaxed">
+              ارفع أي صورة واستخرج الوصف الدقيق (البرومبت) المستخدم في توليدها لإعادة إنشاء نتائج وإضاءات مشابهة.
+            </p>
+          </div>
+          <div class="mt-6 pt-4 border-t border-gold-500/15 flex items-center justify-between">
+            <span class="text-[11px] text-emerald-400">نشط</span>
+            <button class="px-3 py-1.5 rounded-lg bg-dark-850 hover:bg-gold-500 hover:text-dark-950 text-gold-400 font-bold text-xs border border-gold-500/25 transition-all">
+              استخراج الآن
+            </button>
+          </div>
+        </div>
+
+        <!-- Tool 9: AI Avatar الناطق -->
+        <div class="tool-card p-6 rounded-2xl flex flex-col justify-between group">
+          <div>
+            <div class="flex items-center justify-between mb-4">
+              <div class="w-12 h-12 rounded-xl bg-gold-500/10 border border-gold-500/30 flex items-center justify-center text-gold-400 group-hover:bg-gold-500 group-hover:text-dark-950 transition-colors">
+                <span class="material-symbols-outlined text-[26px]">person_pin</span>
+              </div>
+              <span class="text-[10px] px-2.5 py-1 rounded-full bg-gold-500/10 text-gold-400 border border-gold-500/30 font-medium">فيديو بشري</span>
+            </div>
+            <h3 class="text-lg font-bold text-white mb-1.5">AI Avatar (الأفتار الناطق)</h3>
+            <p class="text-xs text-gray-400 leading-relaxed">
+              حوّل صورك الثابتة إلى أفتار متحدث باحترافية عالية مع مزامنة كاملة لحركة الشفاه وتعبيرات الوجه بأي لغة.
+            </p>
+          </div>
+          <div class="mt-6 pt-4 border-t border-gold-500/15 flex items-center justify-between">
+            <span class="text-[11px] text-emerald-400">نشط</span>
+            <button class="px-3 py-1.5 rounded-lg bg-dark-850 hover:bg-gold-500 hover:text-dark-950 text-gold-400 font-bold text-xs border border-gold-500/25 transition-all">
+              إنشاء أفتار
+            </button>
+          </div>
+        </div>
+
+        <!-- Tool 10: تبديل الوجوه / الأشخاص (Face Swap) -->
+        <div class="tool-card p-6 rounded-2xl flex flex-col justify-between group">
+          <div>
+            <div class="flex items-center justify-between mb-4">
+              <div class="w-12 h-12 rounded-xl bg-gold-500/10 border border-gold-500/30 flex items-center justify-center text-gold-400 group-hover:bg-gold-500 group-hover:text-dark-950 transition-colors">
+                <span class="material-symbols-outlined text-[26px]">face_retouching_natural</span>
+              </div>
+              <span class="text-[10px] px-2.5 py-1 rounded-full bg-gold-500/10 text-gold-400 border border-gold-500/30 font-medium">تبديل فوري</span>
+            </div>
+            <h3 class="text-lg font-bold text-white mb-1.5">تبديل الوجوه / الأشخاص (Face Swap)</h3>
+            <p class="text-xs text-gray-400 leading-relaxed">
+              قم بتبديل ملامح الوجه أو الشخص بالكامل في أي صورة بضغطة واحدة وبدقة واقعية تحافظ على تعابير الوجه الأصلية.
+            </p>
+          </div>
+          <div class="mt-6 pt-4 border-t border-gold-500/15 flex items-center justify-between">
+            <span class="text-[11px] text-emerald-400">نشط</span>
+            <button class="px-3 py-1.5 rounded-lg bg-dark-850 hover:bg-gold-500 hover:text-dark-950 text-gold-400 font-bold text-xs border border-gold-500/25 transition-all">
+              تبديل وجه
+            </button>
+          </div>
+        </div>
+
+        <!-- Tool 11: محرك الحركة (Motion Master) -->
+        <div class="tool-card p-6 rounded-2xl flex flex-col justify-between group">
+          <div>
+            <div class="flex items-center justify-between mb-4">
+              <div class="w-12 h-12 rounded-xl bg-gold-500/10 border border-gold-500/30 flex items-center justify-center text-gold-400 group-hover:bg-gold-500 group-hover:text-dark-950 transition-colors">
+                <span class="material-symbols-outlined text-[26px]">motion_photos_auto</span>
+              </div>
+              <span class="text-[10px] px-2.5 py-1 rounded-full bg-gold-500/10 text-gold-400 border border-gold-500/30 font-medium">تحريك مسارات</span>
+            </div>
+            <h3 class="text-lg font-bold text-white mb-1.5">محرك الحركة (Motion Master)</h3>
+            <p class="text-xs text-gray-400 leading-relaxed">
+              التحكم الاحترافي في مسار وحركة الكاميرا وتوجيه تدفق العناصر في الإعلانات الترويجية والتصاميم المتحركة.
+            </p>
+          </div>
+          <div class="mt-6 pt-4 border-t border-gold-500/15 flex items-center justify-between">
+            <span class="text-[11px] text-emerald-400">نشط</span>
+            <button class="px-3 py-1.5 rounded-lg bg-dark-850 hover:bg-gold-500 hover:text-dark-950 text-gold-400 font-bold text-xs border border-gold-500/25 transition-all">
+              فتح المحرك
+            </button>
+          </div>
+        </div>
+
+        <!-- Tool 12: استوديو التصوير (Virtual Studio) -->
+        <div class="tool-card p-6 rounded-2xl flex flex-col justify-between group">
+          <div>
+            <div class="flex items-center justify-between mb-4">
+              <div class="w-12 h-12 rounded-xl bg-gold-500/10 border border-gold-500/30 flex items-center justify-center text-gold-400 group-hover:bg-gold-500 group-hover:text-dark-950 transition-colors">
+                <span class="material-symbols-outlined text-[26px]">camera</span>
+              </div>
+              <span class="text-[10px] px-2.5 py-1 rounded-full bg-gold-500/10 text-gold-400 border border-gold-500/30 font-medium">تصوير منتجات</span>
+            </div>
+            <h3 class="text-lg font-bold text-white mb-1.5">استوديو التصوير (Virtual Photo Studio)</h3>
+            <p class="text-xs text-gray-400 leading-relaxed">
+              إعداد جلسات تصوير افتراضية للمنتجات بإضاءات وظلال وزوايا احترافية ترفع مبيعات المتاجر والشركات.
+            </p>
+          </div>
+          <div class="mt-6 pt-4 border-t border-gold-500/15 flex items-center justify-between">
+            <span class="text-[11px] text-emerald-400">نشط</span>
+            <button class="px-3 py-1.5 rounded-lg bg-dark-850 hover:bg-gold-500 hover:text-dark-950 text-gold-400 font-bold text-xs border border-gold-500/25 transition-all">
+              دخول الاستوديو
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ================= FEATURE HIGHLIGHT: AI CV BUILDER ================= -->
+    <section id="ai-cv" class="max-w-7xl mx-auto px-6 lg:px-12 py-20 relative border-t border-gold-500/15">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+        
+        <div class="lg:col-span-6 flex flex-col gap-6">
+          <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-gold-500/10 border border-gold-500/30 text-gold-400 text-xs font-semibold w-max">
+            <span class="material-symbols-outlined text-[16px]">verified_user</span>
+            حصرياً في RenderLancer • صانع السير الذاتية الذكي
+          </div>
+
+          <h2 class="text-3xl md:text-5xl font-bold text-white leading-tight">
+            سيرة ذاتية متوافقة مع <br/>
+            <span class="gold-gradient-text">أنظمة الفرز العالمية (ATS)</span> بنقرة زر
+          </h2>
+
+          <p class="text-gray-300 text-sm md:text-base leading-relaxed">
+            محرك ذكاء اصطناعي يعيد صياغة مسؤولياتك السابقة إلى إنجازات رقمية مبهرة باستخدام أفعال القوة، ويقيس نسبة قبولك في الشركات الدولية قبل أن تقدم على أي وظيفة.
+          </p>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-2">
+            <div class="p-4 rounded-xl bg-dark-900 border border-gold-500/20 flex items-start gap-3">
+              <span class="material-symbols-outlined text-gold-500 text-[24px]">troubleshoot</span>
+              <div>
+                <h4 class="text-sm font-bold text-white">فحص فوري للـ ATS Score</h4>
+                <p class="text-xs text-gray-400 mt-1">يقيس نسبة قبول سيرتك في الشركات العالمية قبل التقديم.</p>
+              </div>
+            </div>
+
+            <div class="p-4 rounded-xl bg-dark-900 border border-gold-500/20 flex items-start gap-3">
+              <span class="material-symbols-outlined text-gold-500 text-[24px]">magic_button</span>
+              <div>
+                <h4 class="text-sm font-bold text-white">إعادة صياغة ذكية بالـ AI</h4>
+                <p class="text-xs text-gray-400 mt-1">يستبدل العبارات الضعيفة بأفعال قوة مهنية وإحصائيات مؤثرة.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-4 pt-2">
+            <a href="#builder" class="px-6 py-3.5 rounded-xl gold-button-gradient text-dark-950 font-bold text-sm flex items-center gap-2">
+              <span>ابنِ سيرتك الذاتية مجاناً الآن</span>
+              <span class="material-symbols-outlined text-[18px]">arrow_back</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- Interactive Visual Mockup -->
+        <div class="lg:col-span-6 relative">
+          <div class="relative rounded-2xl glass-card p-6 border border-gold-500/40 shadow-2xl">
+            <div class="flex items-center justify-between pb-4 border-b border-gold-500/20">
+              <div class="flex items-center gap-3">
+                <div class="w-12 h-12 rounded-xl bg-gold-500/10 border border-gold-500/40 flex items-center justify-center">
+                  <span class="material-symbols-outlined text-gold-400 text-[26px]">analytics</span>
+                </div>
+                <div>
+                  <h4 class="text-sm font-bold text-white">فاحص أنظمة الفرز (ATS Scanner)</h4>
+                  <span class="text-xs text-emerald-400 flex items-center gap-1">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                    جاهز للمنافسة في الأسواق الدولية
+                  </span>
+                </div>
+              </div>
+
+              <div class="text-left">
+                <span class="text-2xl font-bold gold-gradient-text">98 / 100</span>
+                <span class="block text-[10px] text-gray-400">ATS Rating</span>
+              </div>
+            </div>
+
+            <div class="mt-5 p-5 rounded-xl bg-dark-950/90 border border-gold-500/20 space-y-4 text-right">
+              <div class="flex items-center justify-between">
+                <div>
+                  <h3 class="text-base font-bold text-white">أحمد خليل النجار</h3>
+                  <p class="text-xs text-gold-400 font-medium">Senior Full-Stack Engineer & AI Architect</p>
+                </div>
+                <span class="text-[10px] px-2.5 py-1 rounded-full bg-dark-850 text-gray-300 border border-gold-500/20">
+                  فلسطين - غزة / عن بعد
+                </span>
+              </div>
+
+              <div class="p-3 rounded-lg bg-gold-500/10 border border-gold-500/30 flex items-start gap-2.5">
+                <span class="material-symbols-outlined text-gold-400 text-[18px] shrink-0 mt-0.5">smart_toy</span>
+                <div>
+                  <span class="text-xs font-bold text-gold-300 block">اقتراح الذكاء الاصطناعي لتحسين النتيجة (+6%):</span>
+                  <p class="text-[11px] text-gray-300 mt-0.5 leading-relaxed">
+                    تم تحويل "قمت ببناء تطبيق متجر" إلى: <strong>"هندسة وتطوير منصة تجارة سحابية خفضت وقت التحميل بنسبة 42% ورفعت معدل التحويل 3x."</strong>
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div class="mt-4 flex items-center justify-between text-xs pt-2">
+              <span class="text-gray-400">القالب النشط: <strong class="text-white">Executive Gold Minimal</strong></span>
+              <button class="px-3 py-1.5 rounded-lg gold-button-gradient text-dark-950 font-bold">تحميل PDF</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ================= DIASPORA & PALESTINE BRIDGE ================= -->
+    <section id="diaspora" class="max-w-7xl mx-auto px-6 lg:px-12 py-16">
+      <div class="rounded-3xl glass-card p-8 md:p-14 relative overflow-hidden border border-gold-500/30">
+        <div class="max-w-3xl">
+          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gold-500/10 border border-gold-500/30 text-gold-400 text-xs font-semibold mb-4">
+            <span class="material-symbols-outlined text-[16px]">public</span>
+            شبكة الشتات الفلسطيني والأعمال الدولية
+          </div>
+          <h2 class="text-2xl md:text-4xl font-bold text-white leading-snug">
+            ربط مباشر بين <span class="gold-gradient-text">الشركات الفلسطينية في الخارج</span> وكفاءات الوطن
+          </h2>
+          <p class="mt-4 text-gray-300 text-sm md:text-base leading-relaxed">
+            صُمم RenderLancer لكسر الحصار والقيود المالية عبر ضمان مالي (Escrow) ودعم قنوات الدفع الملائمة (Payoneer, USDT Crypto, وبنك فلسطين).
+          </p>
+          <div class="mt-8 flex flex-wrap gap-4">
+            <a href="#hire-palestine" class="px-6 py-3.5 rounded-xl gold-button-gradient text-dark-950 font-bold text-sm flex items-center gap-2">
+              <span>وظّف كفاءات فلسطينية الآن</span>
+              <span class="material-symbols-outlined text-[18px]">arrow_back</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= TOP FREELANCERS ================= -->
+    <section id="talents" class="max-w-7xl mx-auto px-6 lg:px-12 py-16 border-t border-gold-500/15">
+      <div class="flex items-center justify-between mb-8">
+        <div>
+          <div class="flex items-center gap-2 text-gold-400 text-xs font-bold mb-1">
+            <span class="material-symbols-outlined text-[18px]">workspace_premium</span>
+            نخبة المحترفين
+          </div>
+          <h2 class="text-2xl md:text-3xl font-bold text-white">كفاءات فلسطينية متميزة</h2>
+        </div>
+        <a href="#" class="text-xs font-bold text-gold-400 hover:underline flex items-center gap-1">
+          <span>عرض كل الكفاءات</span>
+          <span class="material-symbols-outlined text-[14px]">arrow_back</span>
+        </a>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        
+        <div class="p-5 rounded-2xl bg-dark-900 border border-gold-500/25 hover:border-gold-500/70 transition-all flex flex-col justify-between">
+          <div>
+            <div class="flex items-center gap-3 mb-3">
+              <div class="w-12 h-12 rounded-full border-2 border-gold-500 p-0.5">
+                <div class="w-full h-full rounded-full bg-dark-800 flex items-center justify-center text-gold-400 font-bold">م.ن</div>
+              </div>
+              <div>
+                <h4 class="text-sm font-bold text-white">م. ندى بركات</h4>
+                <span class="text-[11px] text-gold-400 block">AI & Backend Engineer</span>
+              </div>
+            </div>
+            <p class="text-xs text-gray-400 leading-relaxed line-clamp-2">متخصصة في بناء وتكامل حلول الذكاء الاصطناعي وواجهات API السحابية.</p>
+          </div>
+          <div class="mt-5 pt-3 border-t border-gold-500/15 flex items-center justify-between">
+            <span class="text-xs font-bold text-white">$45.00 <span class="text-[10px] text-gray-400 font-normal">/ساعة</span></span>
+            <button class="px-3 py-1.5 rounded-lg bg-gold-500/10 text-gold-400 hover:bg-gold-500 hover:text-dark-950 font-bold text-xs transition-colors">عرض الملف</button>
+          </div>
+        </div>
+
+        <div class="p-5 rounded-2xl bg-dark-900 border border-gold-500/25 hover:border-gold-500/70 transition-all flex flex-col justify-between">
+          <div>
+            <div class="flex items-center gap-3 mb-3">
+              <div class="w-12 h-12 rounded-full border-2 border-gold-500 p-0.5">
+                <div class="w-full h-full rounded-full bg-dark-800 flex items-center justify-center text-gold-400 font-bold">ح.م</div>
+              </div>
+              <div>
+                <h4 class="text-sm font-bold text-white">حسان مطر</h4>
+                <span class="text-[11px] text-gold-400 block">Senior Product Designer</span>
+              </div>
+            </div>
+            <p class="text-xs text-gray-400 leading-relaxed line-clamp-2">تصميم نظم منتجات رقمية وتجارب مستخدم SaaS معقدة.</p>
+          </div>
+          <div class="mt-5 pt-3 border-t border-gold-500/15 flex items-center justify-between">
+            <span class="text-xs font-bold text-white">$50.00 <span class="text-[10px] text-gray-400 font-normal">/ساعة</span></span>
+            <button class="px-3 py-1.5 rounded-lg bg-gold-500/10 text-gold-400 hover:bg-gold-500 hover:text-dark-950 font-bold text-xs transition-colors">عرض الملف</button>
+          </div>
+        </div>
+
+        <div class="p-5 rounded-2xl bg-dark-900 border border-gold-500/25 hover:border-gold-500/70 transition-all flex flex-col justify-between">
+          <div>
+            <div class="flex items-center gap-3 mb-3">
+              <div class="w-12 h-12 rounded-full border-2 border-gold-500 p-0.5">
+                <div class="w-full h-full rounded-full bg-dark-800 flex items-center justify-center text-gold-400 font-bold">م.ش</div>
+              </div>
+              <div>
+                <h4 class="text-sm font-bold text-white">مرام الشوا</h4>
+                <span class="text-[11px] text-gold-400 block">Mobile App Lead (Flutter)</span>
+              </div>
+            </div>
+            <p class="text-xs text-gray-400 leading-relaxed line-clamp-2">تطوير تطبيقات الهواتف الذكية الموجهة للشركات الناشئة.</p>
+          </div>
+          <div class="mt-5 pt-3 border-t border-gold-500/15 flex items-center justify-between">
+            <span class="text-xs font-bold text-white">$35.00 <span class="text-[10px] text-gray-400 font-normal">/ساعة</span></span>
+            <button class="px-3 py-1.5 rounded-lg bg-gold-500/10 text-gold-400 hover:bg-gold-500 hover:text-dark-950 font-bold text-xs transition-colors">عرض الملف</button>
+          </div>
+        </div>
+
+        <div class="p-5 rounded-2xl bg-dark-900 border border-gold-500/25 hover:border-gold-500/70 transition-all flex flex-col justify-between">
+          <div>
+            <div class="flex items-center gap-3 mb-3">
+              <div class="w-12 h-12 rounded-full border-2 border-gold-500 p-0.5">
+                <div class="w-full h-full rounded-full bg-dark-800 flex items-center justify-center text-gold-400 font-bold">ط.ع</div>
+              </div>
+              <div>
+                <h4 class="text-sm font-bold text-white">طارق عودة</h4>
+                <span class="text-[11px] text-gold-400 block">Full-Stack Next.js Dev</span>
+              </div>
+            </div>
+            <p class="text-xs text-gray-400 leading-relaxed line-clamp-2">بناء منصات الويب السريعة ومتاجر إلكترونية عالية الأداء.</p>
+          </div>
+          <div class="mt-5 pt-3 border-t border-gold-500/15 flex items-center justify-between">
+            <span class="text-xs font-bold text-white">$40.00 <span class="text-[10px] text-gray-400 font-normal">/ساعة</span></span>
+            <button class="px-3 py-1.5 rounded-lg bg-gold-500/10 text-gold-400 hover:bg-gold-500 hover:text-dark-950 font-bold text-xs transition-colors">عرض الملف</button>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ================= FOOTER ================= -->
+    <footer class="border-t border-gold-500/20 bg-dark-950 pt-16 pb-12">
+      <div class="max-w-7xl mx-auto px-6 lg:px-12 text-center md:text-right">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-10 pb-12 border-b border-gold-500/15">
+          <div class="space-y-4">
+            <div class="flex items-center gap-2 justify-center md:justify-start">
+              <div class="w-8 h-8 rounded-lg gold-button-gradient flex items-center justify-center text-dark-950 font-bold">
+                <span class="material-symbols-outlined text-[20px]">all_inclusive</span>
+              </div>
+              <span class="text-lg font-bold text-white">Render<span class="text-gold-500">Lancer</span></span>
+            </div>
+            <p class="text-xs text-gray-400 leading-relaxed">
+              منصة العمل الحر وتمكين الكفاءات الفلسطينية واستوديو الذكاء الاصطناعي الموحد. إحدى المبادرات التكنولوجية لشركة <strong>Render Group</strong>.
+            </p>
+          </div>
+          <div>
+            <h4 class="text-sm font-bold text-white mb-3">أدوات الذكاء الاصطناعي</h4>
+            <ul class="space-y-2 text-xs text-gray-400">
+              <li>Veo 3.1 & Seedance 2.0</li>
+              <li>GPT Image 2 & نانو بنانا برو</li>
+              <li>القياس الافتراضي & تبديل الوجوه</li>
+              <li>صانع السيرة الذاتية (ATS)</li>
+            </ul>
+          </div>
+          <div>
+            <h4 class="text-sm font-bold text-white mb-3">التشبيك والشتات</h4>
+            <ul class="space-y-2 text-xs text-gray-400">
+              <li>شركات الشتات الفلسطيني</li>
+              <li>الضمان المالي (Escrow)</li>
+              <li>قنوات السحب المحلية (PalPay, Bank)</li>
+              <li>سحب USDT & Payoneer</li>
+            </ul>
+          </div>
+          <div>
+            <h4 class="text-sm font-bold text-white mb-3">تفعيل الاشتراكات</h4>
+            <p class="text-xs text-gray-400 mb-3">هل لديك رمز تفعيل صادر عن Render Group؟</p>
+            <button onclick="document.getElementById('activation-modal').classList.remove('hidden')" class="w-full px-4 py-2.5 rounded-xl gold-button-gradient text-dark-950 font-bold text-xs flex items-center justify-center gap-2">
+              <span class="material-symbols-outlined text-[16px]">vpn_key</span>
+              إدخال رمز التفعيل
+            </button>
+          </div>
+        </div>
+        <div class="pt-8 flex flex-col md:flex-row items-center justify-between text-xs text-gray-400 gap-4">
+          <p>© 2026 Render Group. جميع الحقوق محفوظة لـ RenderLancer Studio.</p>
+          <span>فلسطين • القدس • غزة • رام الله • الشتات</span>
+        </div>
+      </div>
+    </footer>
+  </main>
+
+  <!-- ================= ACTIVATION & SUBSCRIPTIONS MODAL ================= -->
+  <div id="activation-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md hidden p-4">
+    <div class="relative w-full max-w-lg rounded-3xl glass-card p-6 md:p-8 border border-gold-500/40 shadow-2xl">
+      
+      <button onclick="document.getElementById('activation-modal').classList.add('hidden')" class="absolute top-5 left-5 text-gray-400 hover:text-white">
+        <span class="material-symbols-outlined text-[24px]">close</span>
+      </button>
+
+      <div class="flex items-center gap-3 mb-6">
+        <div class="w-12 h-12 rounded-2xl gold-button-gradient flex items-center justify-center text-dark-950 font-bold shadow-lg">
+          <span class="material-symbols-outlined text-[28px]">token</span>
+        </div>
+        <div>
+          <h3 class="text-lg font-bold text-white">إدارة اشتراكات Render Studio</h3>
+          <p class="text-xs text-gold-400">تحكم بترخيص الأدوات الـ 12 الموحدة</p>
+        </div>
+      </div>
+
+      <!-- Option 1: Redeem Code -->
+      <div class="p-4 rounded-2xl bg-dark-950/80 border border-gold-500/20 mb-4">
+        <label class="block text-xs font-bold text-white mb-1.5 flex items-center gap-1.5">
+          <span class="material-symbols-outlined text-gold-500 text-[16px]">vpn_key</span>
+          إدخال كود التفعيل (Activation Code)
+        </label>
+        <p class="text-[11px] text-gray-400 mb-3">إذا كان لديك كود صادر من Render Group أو أحد الوكلاء:</p>
+        <div class="flex items-center gap-2">
+          <input type="text" placeholder="مثال: RENDER-GOLD-2026" class="w-full px-3 py-2.5 rounded-xl bg-dark-900 border border-gold-500/30 text-xs font-mono text-gold-300 placeholder:text-gray-600 focus:outline-none"/>
+          <button class="px-5 py-2.5 rounded-xl gold-button-gradient text-dark-950 font-bold text-xs shrink-0">تفعيل</button>
+        </div>
+      </div>
+
+      <!-- Option 2: Pay from Freelance Wallet -->
+      <div class="p-4 rounded-2xl bg-dark-950/80 border border-gold-500/20">
+        <div class="flex items-center justify-between mb-2">
+          <label class="text-xs font-bold text-white flex items-center gap-1.5">
+            <span class="material-symbols-outlined text-emerald-400 text-[16px]">account_balance_wallet</span>
+            الدفع من رصيد أرباح العمل الحر
+          </label>
+          <span class="text-xs font-mono text-emerald-400 font-bold">$120.00 متاح</span>
+        </div>
+        <p class="text-[11px] text-gray-400 mb-3 leading-relaxed">
+          وفّر على نفسك عمولات البطاقات الدولية، وفعّل باقة الاستوديو الشاملة (الوصول لجميع الأدوات الـ 12 لمدة 30 يوماً) بخصم <strong>$29.00</strong> فقط من محفظتك.
+        </p>
+        <button class="w-full py-3 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/40 text-emerald-300 font-bold text-xs flex items-center justify-center gap-2 transition-colors">
+          <span>تفعيل الباقة بـ $29 من رصيد العمل الحر</span>
+          <span class="material-symbols-outlined text-[16px]">check_circle</span>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+</body>
+</html>
