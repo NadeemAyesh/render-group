@@ -180,8 +180,67 @@
   <main>
     <!-- ================= HERO SECTION ================= -->
     <section class="relative flex flex-col justify-center items-center overflow-hidden border-b border-gold-500/15 py-16 lg:py-24">
-      <div class="absolute top-1/4 right-1/4 w-[500px] h-[500px] bg-gold-500/10 rounded-full blur-[140px] pointer-events-none"></div>
-      <div class="absolute bottom-10 left-1/4 w-[400px] h-[400px] bg-gold-600/10 rounded-full blur-[120px] pointer-events-none"></div>
+      <!-- High-End Luxury Hero Background -->
+      <div class="absolute inset-0 pointer-events-none overflow-hidden select-none z-0">
+        <!-- 1. Top Golden Spotlight Beam -->
+        <div class="absolute -top-36 left-1/2 -translate-x-1/2 w-[700px] md:w-[1200px] h-[580px] pointer-events-none opacity-80 dark:opacity-70"
+          style="background: radial-gradient(ellipse 70% 50% at 50% 0%, rgba(212, 175, 55, 0.28) 0%, rgba(212, 175, 55, 0.10) 45%, rgba(212, 175, 55, 0.02) 75%, transparent 100%);">
+        </div>
+
+        <!-- 2. Ambient Radiant Orbs -->
+        <div class="absolute top-[10%] -right-24 md:right-[5%] w-[420px] md:w-[540px] h-[420px] md:h-[540px] bg-gradient-to-br from-gold-400/20 via-gold-500/10 to-transparent rounded-full blur-[110px] md:blur-[130px] animate-pulse duration-[7000ms] pointer-events-none"></div>
+        <div class="absolute -bottom-16 -left-24 md:left-[5%] w-[450px] md:w-[580px] h-[450px] md:h-[580px] bg-gradient-to-tr from-amber-600/15 via-gold-600/10 to-transparent rounded-full blur-[120px] md:blur-[140px] pointer-events-none"></div>
+        <div class="absolute top-[35%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[550px] md:w-[750px] h-[280px] bg-gold-500/8 dark:bg-gold-500/12 rounded-full blur-[90px] pointer-events-none"></div>
+
+        <!-- 3. Precision Studio Grid with Radial Mask Fade -->
+        <div class="absolute inset-0 pointer-events-none opacity-60 dark:opacity-35"
+          style="background-image: linear-gradient(to right, rgba(212, 175, 55, 0.22) 1px, transparent 1px), linear-gradient(to bottom, rgba(212, 175, 55, 0.22) 1px, transparent 1px); background-size: 48px 48px; mask-image: radial-gradient(ellipse 75% 65% at 50% 30%, #000 25%, rgba(0,0,0,0.4) 60%, transparent 85%); -webkit-mask-image: radial-gradient(ellipse 75% 65% at 50% 30%, #000 25%, rgba(0,0,0,0.4) 60%, transparent 85%);">
+        </div>
+
+        <!-- 4. Vector Orbital Rings & Flow Waves -->
+        <svg class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1100px] lg:w-[1400px] h-[650px] pointer-events-none opacity-40 dark:opacity-45" viewBox="0 0 1400 650" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <ellipse cx="700" cy="200" rx="460" ry="220" stroke="url(#goldRingGrad1)" stroke-width="1.2" stroke-dasharray="5 7"></ellipse>
+          <ellipse cx="700" cy="200" rx="620" ry="300" stroke="url(#goldRingGrad2)" stroke-width="1.2"></ellipse>
+          <ellipse cx="700" cy="200" rx="780" ry="380" stroke="url(#goldRingGrad1)" stroke-width="1" stroke-dasharray="3 9"></ellipse>
+          <path d="M -50 440 C 300 300, 550 500, 880 340 C 1100 230, 1300 400, 1500 280" stroke="url(#waveGrad1)" stroke-width="1.6" fill="none"></path>
+          <path d="M 0 500 C 350 360, 600 560, 930 400 C 1150 290, 1350 460, 1550 340" stroke="url(#waveGrad2)" stroke-width="1.2" fill="none" stroke-dasharray="4 6"></path>
+          <defs>
+            <linearGradient id="goldRingGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#D4AF37" stop-opacity="0.1"></stop>
+              <stop offset="50%" stop-color="#D4AF37" stop-opacity="0.6"></stop>
+              <stop offset="100%" stop-color="#B8860B" stop-opacity="0.05"></stop>
+            </linearGradient>
+            <linearGradient id="goldRingGrad2" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stop-color="#D4AF37" stop-opacity="0"></stop>
+              <stop offset="30%" stop-color="#E5C07B" stop-opacity="0.5"></stop>
+              <stop offset="70%" stop-color="#B8860B" stop-opacity="0.5"></stop>
+              <stop offset="100%" stop-color="#D4AF37" stop-opacity="0"></stop>
+            </linearGradient>
+            <linearGradient id="waveGrad1" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stop-color="#D4AF37" stop-opacity="0"></stop>
+              <stop offset="25%" stop-color="#D4AF37" stop-opacity="0.5"></stop>
+              <stop offset="65%" stop-color="#F59E0B" stop-opacity="0.5"></stop>
+              <stop offset="100%" stop-color="#D4AF37" stop-opacity="0"></stop>
+            </linearGradient>
+            <linearGradient id="waveGrad2" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stop-color="#D4AF37" stop-opacity="0"></stop>
+              <stop offset="40%" stop-color="#D4AF37" stop-opacity="0.35"></stop>
+              <stop offset="80%" stop-color="#B8860B" stop-opacity="0.3"></stop>
+              <stop offset="100%" stop-color="#D4AF37" stop-opacity="0"></stop>
+            </linearGradient>
+          </defs>
+        </svg>
+
+        <!-- 5. Micro-sparks -->
+        <div class="hidden sm:block absolute top-20 right-[12%] text-gold-500/50 dark:text-gold-400/40 text-base animate-pulse duration-[5000ms]">✦</div>
+        <div class="hidden sm:block absolute top-36 left-[14%] text-gold-600/45 dark:text-gold-300/35 text-xs animate-bounce duration-[7000ms]">✦</div>
+        <div class="hidden sm:block absolute bottom-28 right-[18%] text-amber-500/40 text-sm animate-pulse duration-[6000ms]">✦</div>
+        <div class="hidden sm:block absolute bottom-36 left-[10%] text-gold-500/45 text-xs">✦</div>
+
+        <!-- 6. Edge Fades -->
+        <div class="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-[#FDFBF7] dark:from-dark-950 to-transparent pointer-events-none"></div>
+        <div class="absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-[#FDFBF7] dark:from-dark-950 to-transparent pointer-events-none"></div>
+      </div>
       
       <div class="relative max-w-5xl mx-auto px-6 text-center z-10 flex flex-col items-center">
         
@@ -199,6 +258,40 @@
         <p class="mt-6 text-base md:text-lg text-gray-300 max-w-3xl leading-relaxed">
           منصتك الشاملة للإبداع الرقمي والعمل الحر. نصنع المستقبل بتمكين الكفاءات الفلسطينية بأدوات الذكاء الاصطناعي الأكثر تطوراً في العالم، مع إدارة اشتراكاتك وصنع سيرتك الذاتية في مكان واحد.
         </p>
+
+        <!-- Quick Action Navigation Strip / Interactive Hub -->
+        <div class="mt-8 flex flex-wrap items-center justify-center gap-2.5 p-2 rounded-2xl bg-white/70 dark:bg-dark-900/60 backdrop-blur-xl border border-gold-500/25 shadow-xl shadow-gold-500/5 max-w-4xl mx-auto">
+          <a href="#projects" class="group relative flex items-center gap-2.5 px-5 py-3 rounded-xl gold-button-gradient text-dark-950 font-bold text-xs md:text-sm shadow-md shadow-gold-500/20 hover:shadow-lg hover:shadow-gold-500/35 hover:scale-[1.02] active:scale-[0.98] transition-all">
+            <div class="w-7 h-7 rounded-lg bg-dark-950/15 flex items-center justify-center text-dark-950">
+              <span class="material-symbols-outlined text-[18px]">verified</span>
+            </div>
+            <span>مشاريع منجزة من ريندر</span>
+            <span class="text-[10px] px-2 py-0.5 rounded-full bg-dark-950/10 text-dark-950 font-bold">موثقة</span>
+          </a>
+
+          <a href="#ai-cv" class="group flex items-center gap-2.5 px-4 py-3 rounded-xl bg-white/90 dark:bg-dark-950/70 hover:bg-gold-500/10 dark:hover:bg-gold-500/15 border border-gold-500/30 hover:border-gold-500/60 shadow-sm hover:shadow-md transition-all hover:scale-[1.02] active:scale-[0.98]">
+            <div class="w-7 h-7 rounded-lg bg-amber-500/10 border border-amber-500/25 flex items-center justify-center text-amber-600 dark:text-amber-400 group-hover:scale-110 transition-transform">
+              <span class="material-symbols-outlined text-[18px]">description</span>
+            </div>
+            <span class="text-xs md:text-sm font-bold text-slate-900 dark:text-gray-100 group-hover:text-gold-600 dark:group-hover:text-gold-300 transition-colors">صانع السيرة الذاتية</span>
+            <span class="text-[10px] px-1.5 py-0.5 rounded-md bg-amber-500/15 text-amber-800 dark:text-amber-300 font-bold border border-amber-500/30">ATS</span>
+          </a>
+
+          <a href="#ai-studio-hub" class="group flex items-center gap-2.5 px-4 py-3 rounded-xl bg-white/90 dark:bg-dark-950/70 hover:bg-gold-500/10 dark:hover:bg-gold-500/15 border border-gold-500/30 hover:border-gold-500/60 shadow-sm hover:shadow-md transition-all hover:scale-[1.02] active:scale-[0.98]">
+            <div class="w-7 h-7 rounded-lg bg-gold-500/10 border border-gold-500/25 flex items-center justify-center text-gold-600 dark:text-gold-400 group-hover:scale-110 transition-transform">
+              <span class="material-symbols-outlined text-[18px]">token</span>
+            </div>
+            <span class="text-xs md:text-sm font-bold text-slate-900 dark:text-gray-100 group-hover:text-gold-600 dark:group-hover:text-gold-300 transition-colors">استوديو الـ AI</span>
+            <span class="text-[10px] px-1.5 py-0.5 rounded-full bg-gold-500/15 text-gold-800 dark:text-gold-300 font-bold border border-gold-500/30">12 أداة</span>
+          </a>
+
+          <a href="#about" class="group flex items-center gap-2.5 px-4 py-3 rounded-xl bg-white/90 dark:bg-dark-950/70 hover:bg-gold-500/10 dark:hover:bg-gold-500/15 border border-gold-500/30 hover:border-gold-500/60 shadow-sm hover:shadow-md transition-all hover:scale-[1.02] active:scale-[0.98]">
+            <div class="w-7 h-7 rounded-lg bg-sky-500/10 border border-sky-500/25 flex items-center justify-center text-sky-600 dark:text-sky-400 group-hover:scale-110 transition-transform">
+              <span class="material-symbols-outlined text-[18px]">info</span>
+            </div>
+            <span class="text-xs md:text-sm font-bold text-slate-900 dark:text-gray-100 group-hover:text-gold-600 dark:group-hover:text-gold-300 transition-colors">تعريف بشركة Render</span>
+          </a>
+        </div>
 
         <!-- Search Bar with AI Mode -->
         <div class="w-full max-w-3xl mt-10 p-2.5 rounded-2xl glass-card shadow-2xl">

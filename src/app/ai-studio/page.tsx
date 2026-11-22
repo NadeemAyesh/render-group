@@ -1,10 +1,16 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { ActivationModal } from "@/components/studio/ActivationModal";
+import { getActiveSession, AuthUser } from "@/lib/auth-service";
+import {
+  getUserSubscription,
+  consumeCredit,
+  UserSubscription,
+} from "@/lib/subscription-service";
 
 interface AITool {
   id: string;
@@ -185,6 +191,31 @@ export default function AIStudioCatalogPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeModalTool, setActiveModalTool] = useState<AITool | null>(null);
 
+  // User and Quota State
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
+  const [userSub, setUserSub] = useState<UserSubscription | null>(null);
+  const [quotaToast, setQuotaToast] = useState<string | null>(null);
+  const [quotaBlockedError, setQuotaBlockedError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const session = getActiveSession();
+    if (session) {
+      setCurrentUser(session);
+      setUserSub(getUserSubscription(session.email));
+    } else {
+      // Guest or default free trial demo
+      setUserSub(getUserSubscription("guest@render.ps"));
+    }
+
+    const handleSubChange = () => {
+      const email = getActiveSession()?.email || "guest@render.ps";
+      setUserSub(getUserSubscription(email));
+    };
+
+    window.addEventListener("renderlancer_subscriptions_change", handleSubChange);
+    return () => window.removeEventListener("renderlancer_subscriptions_change", handleSubChange);
+  }, []);
+
   // Interactive Sandbox State
   const [sandboxPrompt, setSandboxPrompt] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
@@ -193,6 +224,7 @@ export default function AIStudioCatalogPage() {
   const handleOpenToolModal = (tool: AITool) => {
     setActiveModalTool(tool);
     setSandboxResult(null);
+    setQuotaBlockedError(null);
     if (tool.id === "render-chat") {
       setSandboxPrompt("كيف أصمم معمارية سحابية موثوقة لمنصة عمل حر في فلسطين؟");
     } else if (tool.id === "prompt-extractor") {
@@ -207,11 +239,39 @@ export default function AIStudioCatalogPage() {
   const handleRunSandbox = (e: React.FormEvent) => {
     e.preventDefault();
     if (!sandboxPrompt.trim()) return;
+
+    const email = currentUser?.email || "guest@render.ps";
+    const creditType =
+      activeModalTool?.category === "video" || activeModalTool?.category === "motion"
+        ? "video"
+        : activeModalTool?.id === "render-chat"
+        ? "chat"
+        : "image";
+
+    // Quota check
+    const check = consumeCredit(email, creditType);
+    if (!check.allowed) {
+      setQuotaBlockedError(check.message || "نفد رصيدك المتاح. يرجى الترقية لإكمال الاستخدام.");
+      return;
+    }
+
     setIsGenerating(true);
     setSandboxResult(null);
+    setQuotaBlockedError(null);
+
+    // Refresh sub state
+    const updatedSub = getUserSubscription(email);
+    setUserSub(updatedSub);
 
     setTimeout(() => {
       setIsGenerating(false);
+      setQuotaToast(
+        creditType === "video"
+          ? `تم استهلاك 1 فيديو من رصيدك (المتبقي: ${updatedSub.videosTotal - updatedSub.videosUsed} فيديو)`
+          : `تم استهلاك 1 ريندر من رصيدك (المتبقي: ${updatedSub.imagesTotal - updatedSub.imagesUsed} صورة)`
+      );
+      setTimeout(() => setQuotaToast(null), 3500);
+
       if (activeModalTool?.id === "render-chat") {
         setSandboxResult(
           `[استجابة Render Chat الفائقة]: تم تحليل طلبك بعناية.\nالتوصية الهندسية: اعتمد على Next.js 15 App Router مع طبقة caching ذكية، وافصل مسارات المصادقة عن قواعد البيانات الخارجية عبر JWT موثق، مع استخدام شبكة Cloudflare للحماية وتخفيض زمن الاستجابة إلى أقل من 75ms في فلسطين والشتات.`
@@ -267,21 +327,105 @@ export default function AIStudioCatalogPage() {
 
           {/* Quick Actions */}
           <div className="flex flex-wrap items-center justify-center gap-4">
-            <button
-              onClick={() => setIsActivationOpen(true)}
+            <Link
+              href="/pricing"
               className="px-6 py-3 rounded-xl gold-button-gradient text-dark-950 font-bold text-xs flex items-center gap-2 shadow-lg shadow-gold-500/25 hover:scale-105 transition-transform"
             >
-              <span className="material-symbols-outlined text-[18px]">key</span>
-              <span>تفعيل اشتراكك الفوري برمز سري</span>
-            </button>
-            <Link
-              href="/register"
+              <span className="material-symbols-outlined text-[18px]">loyalty</span>
+              <span>باقات واشتراكات الاستوديو (3 أيام تجربة مجاناً)</span>
+            </Link>
+            <button
+              onClick={() => setIsActivationOpen(true)}
               className="px-6 py-3 rounded-xl bg-dark-900 hover:bg-dark-850 text-white font-bold text-xs border border-gold-500/30 flex items-center gap-2 transition-colors"
             >
-              <span className="material-symbols-outlined text-[18px]">rocket_launch</span>
-              <span>ابدأ التجربة المجانية الآن (24 ساعة)</span>
-            </Link>
+              <span className="material-symbols-outlined text-[18px]">key</span>
+              <span>تفعيل اشتراكك برمز سري</span>
+            </button>
           </div>
+
+          {/* Live Subscription Quota & 3-Day Trial Card */}
+          {userSub && (
+            <div className="max-w-2xl mx-auto mt-8 p-5 rounded-3xl bg-dark-900/90 border border-gold-500/30 shadow-2xl text-right space-y-3">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-gold-500/15">
+                <div className="space-y-0.5">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <h3 className="text-sm font-bold text-white">{userSub.planName}</h3>
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                      userSub.status === "ACTIVE"
+                        ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/30"
+                        : userSub.status === "TRIAL"
+                        ? "bg-gold-500/15 text-gold-300 border-gold-500/30"
+                        : "bg-red-500/15 text-red-300 border-red-500/30"
+                    }`}>
+                      {userSub.status === "TRIAL" ? "هدية الانضمام (3 أيام تجربة)" : userSub.status}
+                    </span>
+                  </div>
+                  <span className="text-[11px] text-gray-400">
+                    الصلاحية: متبقي <strong className="text-gold-400">{userSub.daysRemaining} أيام</strong> (ينتهي في {userSub.expiresAt})
+                  </span>
+                </div>
+
+                <Link
+                  href="/pricing"
+                  className="px-4 py-2 rounded-xl gold-button-gradient text-dark-950 font-bold text-xs flex items-center gap-1.5 shadow-md hover:scale-105 transition-transform"
+                >
+                  <span className="material-symbols-outlined text-[16px]">loyalty</span>
+                  <span>ترقية الباقة الآن</span>
+                </Link>
+              </div>
+
+              {/* Progress meters for quota */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
+                <div className="p-2.5 rounded-xl bg-dark-950 border border-gold-500/20 space-y-1">
+                  <div className="flex justify-between text-[11px]">
+                    <span className="text-gray-400">رصيد الصور 4K:</span>
+                    <strong className="text-white font-mono">{userSub.imagesTotal - userSub.imagesUsed} / {userSub.imagesTotal}</strong>
+                  </div>
+                  <div className="w-full bg-dark-850 h-1.5 rounded-full overflow-hidden">
+                    <div
+                      className="bg-gold-500 h-full rounded-full transition-all"
+                      style={{ width: `${Math.min(100, ((userSub.imagesTotal - userSub.imagesUsed) / userSub.imagesTotal) * 100)}%` }}
+                    />
+                  </div>
+                </div>
+
+                <div className="p-2.5 rounded-xl bg-dark-950 border border-gold-500/20 space-y-1">
+                  <div className="flex justify-between text-[11px]">
+                    <span className="text-gray-400">رصيد الفيديو السينمائي:</span>
+                    <strong className="text-white font-mono">{userSub.videosTotal - userSub.videosUsed} / {userSub.videosTotal}</strong>
+                  </div>
+                  <div className="w-full bg-dark-850 h-1.5 rounded-full overflow-hidden">
+                    <div
+                      className="bg-purple-500 h-full rounded-full transition-all"
+                      style={{ width: `${Math.min(100, ((userSub.videosTotal - userSub.videosUsed) / userSub.videosTotal) * 100)}%` }}
+                    />
+                  </div>
+                </div>
+
+                <div className="p-2.5 rounded-xl bg-dark-950 border border-gold-500/20 space-y-1 col-span-2 sm:col-span-1">
+                  <div className="flex justify-between text-[11px]">
+                    <span className="text-gray-400">ريندر شات AI:</span>
+                    <strong className="text-white font-mono">{userSub.chatTotal - userSub.chatUsed}</strong>
+                  </div>
+                  <div className="w-full bg-dark-850 h-1.5 rounded-full overflow-hidden">
+                    <div
+                      className="bg-blue-500 h-full rounded-full transition-all"
+                      style={{ width: `${Math.min(100, ((userSub.chatTotal - userSub.chatUsed) / userSub.chatTotal) * 100)}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Toast Notification */}
+          {quotaToast && (
+            <div className="max-w-md mx-auto mt-4 p-3 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs font-bold flex items-center justify-center gap-2 animate-fade-in">
+              <span className="material-symbols-outlined text-[18px]">check_circle</span>
+              <span>{quotaToast}</span>
+            </div>
+          )}
 
           {/* Search & Filter Bar */}
           <div className="mt-12 max-w-2xl mx-auto flex items-center gap-3 bg-dark-900/90 p-2 rounded-2xl border border-gold-500/30">
@@ -432,6 +576,23 @@ export default function AIStudioCatalogPage() {
                   وصول سحابي مباشر (Enterprise Tier)
                 </span>
               </div>
+
+              {quotaBlockedError && (
+                <div className="p-3.5 rounded-xl bg-red-500/15 border border-red-500/30 text-xs text-red-300 space-y-2">
+                  <div className="flex items-center gap-2 font-bold">
+                    <span className="material-symbols-outlined text-[18px]">warning</span>
+                    <span>تنبيه الرصيد السحابي:</span>
+                  </div>
+                  <p className="leading-relaxed">{quotaBlockedError}</p>
+                  <Link
+                    href="/pricing"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg gold-button-gradient text-dark-950 font-bold text-[11px] shadow-md mt-1"
+                  >
+                    <span>الترقية إلى باقة Pro أو Agency</span>
+                    <span className="material-symbols-outlined text-[14px]">arrow_back</span>
+                  </Link>
+                </div>
+              )}
 
               <textarea
                 rows={2}

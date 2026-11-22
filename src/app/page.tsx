@@ -7,6 +7,7 @@ import { Footer } from "@/components/layout/Footer";
 import { StudioToolsGrid } from "@/components/studio/StudioToolsGrid";
 import { ActivationModal } from "@/components/studio/ActivationModal";
 import { CvShowcase } from "@/components/cv/CvShowcase";
+import { HeroBackground } from "@/components/layout/HeroBackground";
 import { getSiteContent, SiteContent, DEFAULT_SITE_CONTENT } from "@/lib/cms-service";
 
 export default function HomePage() {
@@ -30,8 +31,7 @@ export default function HomePage() {
       <main>
         {/* ================= HERO SECTION ================= */}
         <section className="relative flex flex-col justify-center items-center overflow-hidden border-b border-gold-500/15 py-16 lg:py-24">
-          <div className="absolute top-1/4 right-1/4 w-[500px] h-[500px] bg-gold-500/10 rounded-full blur-[140px] pointer-events-none" />
-          <div className="absolute bottom-10 left-1/4 w-[400px] h-[400px] bg-gold-600/10 rounded-full blur-[120px] pointer-events-none" />
+          <HeroBackground />
 
           <div className="relative max-w-5xl mx-auto px-6 text-center z-10 flex flex-col items-center">
             
@@ -50,38 +50,61 @@ export default function HomePage() {
               {cms.heroDescription}
             </p>
 
-            {/* Quick Action Buttons including "مشاريع منجزة من ريندر" */}
-            <div className="mt-8 flex flex-wrap items-center justify-center gap-3.5">
+            {/* Quick Action Navigation Strip / Interactive Hub */}
+            <div className="mt-8 flex flex-wrap items-center justify-center gap-2.5 p-2 rounded-2xl bg-white/70 dark:bg-dark-900/60 backdrop-blur-xl border border-gold-500/25 shadow-xl shadow-gold-500/5 max-w-4xl mx-auto">
               <Link
                 href="/projects"
-                className="px-6 py-3.5 rounded-xl gold-button-gradient text-dark-950 font-bold text-xs md:text-sm flex items-center gap-2 shadow-lg shadow-gold-500/20 hover:scale-105 transition-transform"
+                className="group relative flex items-center gap-2.5 px-5 py-3 rounded-xl gold-button-gradient text-dark-950 font-bold text-xs md:text-sm shadow-md shadow-gold-500/20 hover:shadow-lg hover:shadow-gold-500/35 hover:scale-[1.02] active:scale-[0.98] transition-all"
               >
-                <span className="material-symbols-outlined text-[20px]">verified</span>
+                <div className="w-7 h-7 rounded-lg bg-dark-950/15 flex items-center justify-center text-dark-950">
+                  <span className="material-symbols-outlined text-[18px]">verified</span>
+                </div>
                 <span>مشاريع منجزة من ريندر</span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-dark-950/10 text-dark-950 font-bold">
+                  موثقة
+                </span>
               </Link>
 
               <Link
                 href="/cv-builder"
-                className="px-6 py-3.5 rounded-xl bg-dark-900 hover:bg-dark-850 text-gold-400 border border-gold-500/40 font-bold text-xs md:text-sm flex items-center gap-2 transition-colors shadow-lg"
+                className="group flex items-center gap-2.5 px-4 py-3 rounded-xl bg-white/90 dark:bg-dark-950/70 hover:bg-gold-500/10 dark:hover:bg-gold-500/15 border border-gold-500/30 hover:border-gold-500/60 shadow-sm hover:shadow-md transition-all hover:scale-[1.02] active:scale-[0.98]"
               >
-                <span className="material-symbols-outlined text-[20px] text-gold-400">description</span>
-                <span>صانع السيرة الذاتية (ATS)</span>
+                <div className="w-7 h-7 rounded-lg bg-amber-500/10 border border-amber-500/25 flex items-center justify-center text-amber-600 dark:text-amber-400 group-hover:scale-110 transition-transform">
+                  <span className="material-symbols-outlined text-[18px]">description</span>
+                </div>
+                <span className="text-xs md:text-sm font-bold text-slate-900 dark:text-gray-100 group-hover:text-gold-600 dark:group-hover:text-gold-300 transition-colors">
+                  صانع السيرة الذاتية
+                </span>
+                <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-amber-500/15 text-amber-800 dark:text-amber-300 font-bold border border-amber-500/30">
+                  ATS
+                </span>
               </Link>
 
               <Link
                 href="/ai-studio"
-                className="px-6 py-3.5 rounded-xl bg-dark-900 hover:bg-dark-850 text-gold-300 border border-gold-500/30 font-bold text-xs md:text-sm flex items-center gap-2 transition-colors"
+                className="group flex items-center gap-2.5 px-4 py-3 rounded-xl bg-white/90 dark:bg-dark-950/70 hover:bg-gold-500/10 dark:hover:bg-gold-500/15 border border-gold-500/30 hover:border-gold-500/60 shadow-sm hover:shadow-md transition-all hover:scale-[1.02] active:scale-[0.98]"
               >
-                <span className="material-symbols-outlined text-[20px] text-gold-400">token</span>
-                <span>استوديو الـ AI (12 أداة)</span>
+                <div className="w-7 h-7 rounded-lg bg-gold-500/10 border border-gold-500/25 flex items-center justify-center text-gold-600 dark:text-gold-400 group-hover:scale-110 transition-transform">
+                  <span className="material-symbols-outlined text-[18px]">token</span>
+                </div>
+                <span className="text-xs md:text-sm font-bold text-slate-900 dark:text-gray-100 group-hover:text-gold-600 dark:group-hover:text-gold-300 transition-colors">
+                  استوديو الـ AI
+                </span>
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-gold-500/15 text-gold-800 dark:text-gold-300 font-bold border border-gold-500/30">
+                  12 أداة
+                </span>
               </Link>
 
               <Link
                 href="/about"
-                className="px-6 py-3.5 rounded-xl bg-dark-900 hover:bg-dark-850 text-gray-200 border border-gray-700 font-bold text-xs md:text-sm flex items-center gap-2 transition-colors"
+                className="group flex items-center gap-2.5 px-4 py-3 rounded-xl bg-white/90 dark:bg-dark-950/70 hover:bg-gold-500/10 dark:hover:bg-gold-500/15 border border-gold-500/30 hover:border-gold-500/60 shadow-sm hover:shadow-md transition-all hover:scale-[1.02] active:scale-[0.98]"
               >
-                <span className="material-symbols-outlined text-[18px] text-gray-400">info</span>
-                <span>تعريف بشركة Render</span>
+                <div className="w-7 h-7 rounded-lg bg-sky-500/10 border border-sky-500/25 flex items-center justify-center text-sky-600 dark:text-sky-400 group-hover:scale-110 transition-transform">
+                  <span className="material-symbols-outlined text-[18px]">info</span>
+                </div>
+                <span className="text-xs md:text-sm font-bold text-slate-900 dark:text-gray-100 group-hover:text-gold-600 dark:group-hover:text-gold-300 transition-colors">
+                  تعريف بشركة Render
+                </span>
               </Link>
             </div>
 

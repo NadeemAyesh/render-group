@@ -21,6 +21,19 @@ import {
   SiteContent,
   DEFAULT_SITE_CONTENT,
 } from "@/lib/cms-service";
+import {
+  getPlans,
+  togglePlanStatus,
+  createPlan,
+  deletePlan,
+  getSubscriptions,
+  adminToggleSubscriptionStatus,
+  adminExtendSubscription,
+  adminChangeUserPlan,
+  adminAddCredits,
+  PricingPlan,
+  UserSubscription,
+} from "@/lib/subscription-service";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
 
 interface PendingPayout {
@@ -85,10 +98,38 @@ const AI_TOOLS_CATALOG = [
 export default function SuperAdminDashboardPage() {
   const router = useRouter();
   const [activeUser, setActiveUser] = useState<AuthUser | null>(null);
-  const [activeTab, setActiveTab] = useState<"overview" | "users" | "jobs" | "platforms" | "cms" | "escrow">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "users" | "jobs" | "platforms" | "cms" | "escrow" | "subscriptions">("overview");
 
   // Payouts State
   const [payouts, setPayouts] = useState<PendingPayout[]>(INITIAL_PAYOUTS);
+
+  // Subscriptions & Plans Management State
+  const [plansList, setPlansList] = useState<PricingPlan[]>([]);
+  const [subsList, setSubsList] = useState<UserSubscription[]>([]);
+  const [subStatusFilter, setSubStatusFilter] = useState<string>("ALL");
+  const [subSearchQuery, setSubSearchQuery] = useState("");
+  const [isAddPlanModalOpen, setIsAddPlanModalOpen] = useState(false);
+  const [isExtendModalOpen, setIsExtendModalOpen] = useState(false);
+  const [isAddCreditsModalOpen, setIsAddCreditsModalOpen] = useState(false);
+  const [isChangePlanModalOpen, setIsChangePlanModalOpen] = useState(false);
+  const [selectedSub, setSelectedSub] = useState<UserSubscription | null>(null);
+
+  // Extension & Credit form states
+  const [extendDaysAmount, setExtendDaysAmount] = useState(30);
+  const [extraImagesAmount, setExtraImagesAmount] = useState(100);
+  const [extraVideosAmount, setExtraVideosAmount] = useState(10);
+  const [targetPlanId, setTargetPlanId] = useState("plan-pro");
+
+  // New Plan form state
+  const [newPlanName, setNewPlanName] = useState("");
+  const [newPlanNameEn, setNewPlanNameEn] = useState("");
+  const [newPlanBadge, setNewPlanBadge] = useState("");
+  const [newPlanMonthlyPrice, setNewPlanMonthlyPrice] = useState(49);
+  const [newPlanYearlyPrice, setNewPlanYearlyPrice] = useState(450);
+  const [newPlanImagesQuota, setNewPlanImagesQuota] = useState(1000);
+  const [newPlanVideosQuota, setNewPlanVideosQuota] = useState(50);
+  const [newPlanChatQuota, setNewPlanChatQuota] = useState(5000);
+  const [newPlanFeatures, setNewPlanFeatures] = useState("توليد صور 4K غير محدود, 50 فيديو سينمائي, سحب أرباح فوري, دعم فني 24/7");
 
   // Users Management State
   const [usersList, setUsersList] = useState<AuthUser[]>([]);
@@ -131,6 +172,11 @@ export default function SuperAdminDashboardPage() {
     setUsersList(getAllUsersArray());
   };
 
+  const refreshSubscriptions = () => {
+    setPlansList(getPlans());
+    setSubsList(getSubscriptions());
+  };
+
   const loadPlatformJobs = () => {
     if (typeof window !== "undefined") {
       try {
@@ -153,6 +199,7 @@ export default function SuperAdminDashboardPage() {
       setActiveUser(session);
     }
     refreshUsers();
+    refreshSubscriptions();
     loadPlatformJobs();
     setCmsForm(getSiteContent());
   }, []);
@@ -304,6 +351,77 @@ export default function SuperAdminDashboardPage() {
     }
   };
 
+  // Subscription & Plan Actions
+  const handleToggleSubStatus = (subId: string) => {
+    adminToggleSubscriptionStatus(subId);
+    refreshSubscriptions();
+  };
+
+  const handleTogglePlan = (planId: string) => {
+    togglePlanStatus(planId);
+    refreshSubscriptions();
+  };
+
+  const handleDeletePlan = (planId: string) => {
+    if (window.confirm("هل أنت متأكد من حذف هذه الباقة نهائياً؟")) {
+      deletePlan(planId);
+      refreshSubscriptions();
+    }
+  };
+
+  const handleConfirmExtend = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (selectedSub) {
+      adminExtendSubscription(selectedSub.id, Number(extendDaysAmount));
+      setIsExtendModalOpen(false);
+      refreshSubscriptions();
+    }
+  };
+
+  const handleConfirmAddCredits = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (selectedSub) {
+      adminAddCredits(selectedSub.id, Number(extraImagesAmount), Number(extraVideosAmount));
+      setIsAddCreditsModalOpen(false);
+      refreshSubscriptions();
+    }
+  };
+
+  const handleConfirmChangePlan = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (selectedSub) {
+      adminChangeUserPlan(selectedSub.id, targetPlanId);
+      setIsChangePlanModalOpen(false);
+      refreshSubscriptions();
+    }
+  };
+
+  const handleCreateNewPlan = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newPlanName.trim()) return;
+    const newP: PricingPlan = {
+      id: `plan-${Date.now()}`,
+      name: newPlanName,
+      nameEn: newPlanNameEn || newPlanName,
+      badge: newPlanBadge || undefined,
+      priceMonthly: Number(newPlanMonthlyPrice),
+      priceYearly: Number(newPlanYearlyPrice),
+      durationDays: 30,
+      imagesQuota: Number(newPlanImagesQuota),
+      videosQuota: Number(newPlanVideosQuota),
+      chatQuota: Number(newPlanChatQuota),
+      active: true,
+      popular: false,
+      features: newPlanFeatures.split(",").map((f) => f.trim()).filter(Boolean),
+    };
+    createPlan(newP);
+    setIsAddPlanModalOpen(false);
+    setNewPlanName("");
+    setNewPlanNameEn("");
+    setNewPlanBadge("");
+    refreshSubscriptions();
+  };
+
   // Filtered Users
   const filteredUsers = usersList.filter((u) => {
     if (userRoleFilter === "ALL") return true;
@@ -414,6 +532,23 @@ export default function SuperAdminDashboardPage() {
             >
               <span className="material-symbols-outlined text-[18px] text-gold-400">token</span>
               <span>إدارة المنصات واستوديو الـ AI</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab("subscriptions")}
+              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all ${
+                activeTab === "subscriptions"
+                  ? "bg-purple-500/20 text-purple-300 border border-purple-500/30"
+                  : "text-gray-300 hover:bg-dark-850 hover:text-white"
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <span className="material-symbols-outlined text-[18px] text-amber-400">loyalty</span>
+                <span>إدارة الحزم والاشتراكات</span>
+              </div>
+              <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-mono">
+                {subsList.length}
+              </span>
             </button>
 
             <button
@@ -1251,6 +1386,422 @@ export default function SuperAdminDashboardPage() {
             </div>
           )}
 
+          {/* ================= TAB 7: SUBSCRIPTIONS & PLANS MANAGEMENT ================= */}
+          {activeTab === "subscriptions" && (
+            <div className="space-y-8">
+              {/* Top Banner & Action */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-amber-500/20">
+                <div>
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs font-bold mb-1.5">
+                    <span className="material-symbols-outlined text-[15px]">loyalty</span>
+                    <span>منظومة الحزم السحابية وإدارة رصيد الذكاء الاصطناعي (Subscriptions Engine)</span>
+                  </div>
+                  <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                    إدارة الاشتراكات، الحزم، وباقة التجربة المجانية (3 أيام)
+                  </h2>
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    مراقبة رصيد كافة المستخدمين الفوري، تعديل وتمديد الاشتراكات، تفعيل/إلغاء تفعيل الباقات، وشحن الرصيد الإضافي.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setIsAddPlanModalOpen(true)}
+                    className="px-4 py-2.5 rounded-xl gold-button-gradient text-dark-950 font-bold text-xs flex items-center gap-1.5 shadow-md hover:scale-105 transition-transform"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">add_circle</span>
+                    <span>+ إضافة باقة جديدة</span>
+                  </button>
+                  <Link
+                    href="/pricing"
+                    target="_blank"
+                    className="px-3.5 py-2.5 rounded-xl bg-dark-850 hover:bg-dark-800 text-gold-400 border border-gold-500/30 text-xs font-semibold flex items-center gap-1"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">open_in_new</span>
+                    <span>معاينة صفحة الأسعار</span>
+                  </Link>
+                </div>
+              </div>
+
+              {/* KPI Cards Row */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="p-5 rounded-2xl bg-dark-900 border border-amber-500/30 flex flex-col justify-between">
+                  <span className="text-xs text-gray-400 font-semibold">إجمالي المشتركين المسجلين</span>
+                  <div className="mt-2 flex items-baseline justify-between">
+                    <span className="text-3xl font-extrabold font-mono text-white">{subsList.length}</span>
+                    <span className="text-xs text-amber-400 font-bold">مشترك ومستفيد</span>
+                  </div>
+                </div>
+
+                <div className="p-5 rounded-2xl bg-dark-900 border border-emerald-500/30 flex flex-col justify-between">
+                  <span className="text-xs text-gray-400 font-semibold">مستخدمو التجربة المجانية (3 أيام)</span>
+                  <div className="mt-2 flex items-baseline justify-between">
+                    <span className="text-3xl font-extrabold font-mono text-emerald-400">
+                      {subsList.filter((s) => s.status === "TRIAL").length}
+                    </span>
+                    <span className="text-[10px] text-emerald-300 font-bold bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                      50 صورة + 3 فيديو
+                    </span>
+                  </div>
+                </div>
+
+                <div className="p-5 rounded-2xl bg-dark-900 border border-purple-500/30 flex flex-col justify-between">
+                  <span className="text-xs text-gray-400 font-semibold">المشتركون النشطون (Paid)</span>
+                  <div className="mt-2 flex items-baseline justify-between">
+                    <span className="text-3xl font-extrabold font-mono text-purple-300">
+                      {subsList.filter((s) => s.status === "ACTIVE").length}
+                    </span>
+                    <span className="text-xs text-purple-400 font-bold">باقات مدفوعة</span>
+                  </div>
+                </div>
+
+                <div className="p-5 rounded-2xl bg-dark-900 border border-gold-500/30 flex flex-col justify-between">
+                  <span className="text-xs text-gray-400 font-semibold">الإيراد الشهري التقديري (MRR)</span>
+                  <div className="mt-2 flex items-baseline justify-between">
+                    <span className="text-3xl font-extrabold font-mono gold-gradient-text">
+                      ${subsList.filter((s) => s.status === "ACTIVE").reduce((acc, curr) => acc + (curr.price || 0), 0)}
+                    </span>
+                    <span className="text-[10px] text-gray-400">شهرياً عبر البنوك والكريبتو</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* ============ SUB-SECTION 1: USER SUBSCRIPTIONS MONITORING ============ */}
+              <div className="p-6 rounded-3xl bg-dark-900 border border-amber-500/25 space-y-5">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-3 border-b border-amber-500/15">
+                  <div>
+                    <h3 className="text-base font-bold text-white flex items-center gap-2">
+                      <span className="material-symbols-outlined text-amber-400 text-[20px]">manage_accounts</span>
+                      <span>سجل ومراقبة اشتراكات المستخدمين الحية</span>
+                    </h3>
+                    <p className="text-xs text-gray-400">
+                      متابعة استهلاك الصور والفيديوهات لكل مستخدم، وتمديد الأيام وشحن الرصيد والترقية الفورية
+                    </p>
+                  </div>
+
+                  {/* Search and Filters */}
+                  <div className="flex flex-wrap items-center gap-2">
+                    <div className="relative">
+                      <input
+                        type="text"
+                        placeholder="ابحث بالاسم أو البريد أو الباقة..."
+                        value={subSearchQuery}
+                        onChange={(e) => setSubSearchQuery(e.target.value)}
+                        className="px-3 py-1.5 pr-8 rounded-xl bg-dark-950 border border-amber-500/30 text-xs text-white placeholder:text-gray-500 focus:outline-none w-52"
+                      />
+                      <span className="material-symbols-outlined absolute right-2.5 top-2 text-gray-500 text-[16px]">
+                        search
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-1 bg-dark-950 p-1 rounded-xl border border-amber-500/20">
+                      {[
+                        { id: "ALL", label: "الكل" },
+                        { id: "ACTIVE", label: "نشط" },
+                        { id: "TRIAL", label: "تجريبي (3 أيام)" },
+                        { id: "EXPIRED", label: "منتهي" },
+                        { id: "SUSPENDED", label: "معلق" },
+                      ].map((tab) => (
+                        <button
+                          key={tab.id}
+                          onClick={() => setSubStatusFilter(tab.id)}
+                          className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all ${
+                            subStatusFilter === tab.id
+                              ? "bg-amber-500 text-dark-950 shadow-sm"
+                              : "text-gray-400 hover:text-white"
+                          }`}
+                        >
+                          {tab.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Subscriptions Table */}
+                <div className="overflow-x-auto">
+                  <table className="w-full text-right text-xs">
+                    <thead>
+                      <tr className="border-b border-amber-500/20 text-gray-400 pb-2">
+                        <th className="py-3 font-semibold">المستخدم</th>
+                        <th className="py-3 font-semibold">الباقة ودورة الدفع</th>
+                        <th className="py-3 font-semibold">الحالة</th>
+                        <th className="py-3 font-semibold">الأيام المتبقية</th>
+                        <th className="py-3 font-semibold">استهلاك الصور 4K</th>
+                        <th className="py-3 font-semibold">استهلاك الفيديو</th>
+                        <th className="py-3 font-semibold">وسيلة الدفع</th>
+                        <th className="py-3 font-semibold text-center">تحكم Super Admin</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-amber-500/10">
+                      {subsList
+                        .filter((sub) => {
+                          const matchesStatus = subStatusFilter === "ALL" || sub.status === subStatusFilter;
+                          const matchesSearch =
+                            sub.userName.toLowerCase().includes(subSearchQuery.toLowerCase()) ||
+                            sub.userEmail.toLowerCase().includes(subSearchQuery.toLowerCase()) ||
+                            sub.planName.toLowerCase().includes(subSearchQuery.toLowerCase());
+                          return matchesStatus && matchesSearch;
+                        })
+                        .map((sub) => (
+                          <tr key={sub.id} className="hover:bg-dark-850/50 transition-colors">
+                            {/* User */}
+                            <td className="py-3.5">
+                              <span className="font-bold text-white block">{sub.userName}</span>
+                              <span className="text-[10px] text-gray-400 font-mono block">{sub.userEmail}</span>
+                              <span className="text-[9px] text-amber-400 font-semibold">{sub.userRole}</span>
+                            </td>
+
+                            {/* Plan */}
+                            <td className="py-3.5">
+                              <span className="font-bold text-white block">{sub.planName}</span>
+                              <span className="text-[10px] text-gray-400">
+                                {sub.billingCycle === "trial" ? "تجربة 3 أيام مجانية" : `$${sub.price} (${sub.billingCycle})`}
+                              </span>
+                            </td>
+
+                            {/* Status */}
+                            <td className="py-3.5">
+                              <span
+                                className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
+                                  sub.status === "ACTIVE"
+                                    ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/30"
+                                    : sub.status === "TRIAL"
+                                    ? "bg-amber-500/15 text-amber-300 border-amber-500/30"
+                                    : sub.status === "EXPIRED"
+                                    ? "bg-gray-700/50 text-gray-400 border-gray-600"
+                                    : "bg-red-500/15 text-red-300 border-red-500/30"
+                                }`}
+                              >
+                                {sub.status === "ACTIVE"
+                                  ? "نشط ومعتمد"
+                                  : sub.status === "TRIAL"
+                                  ? "تجربة 3 أيام"
+                                  : sub.status === "EXPIRED"
+                                  ? "منتهي الصلاحية"
+                                  : "معلّق"}
+                              </span>
+                            </td>
+
+                            {/* Days remaining */}
+                            <td className="py-3.5 font-mono">
+                              <span className="text-white font-bold block">{sub.daysRemaining} يوم</span>
+                              <span className="text-[10px] text-gray-500">حتى {sub.expiresAt}</span>
+                            </td>
+
+                            {/* Images quota */}
+                            <td className="py-3.5">
+                              <div className="space-y-1 w-28">
+                                <div className="flex justify-between text-[10px] font-mono">
+                                  <span className="text-gray-400">{sub.imagesUsed}</span>
+                                  <span className="text-white font-bold">{sub.imagesTotal}</span>
+                                </div>
+                                <div className="w-full bg-dark-950 h-1.5 rounded-full overflow-hidden border border-gold-500/20">
+                                  <div
+                                    className="bg-gold-500 h-full rounded-full"
+                                    style={{
+                                      width: `${Math.min(100, (sub.imagesUsed / Math.max(1, sub.imagesTotal)) * 100)}%`,
+                                    }}
+                                  />
+                                </div>
+                              </div>
+                            </td>
+
+                            {/* Videos quota */}
+                            <td className="py-3.5">
+                              <div className="space-y-1 w-24">
+                                <div className="flex justify-between text-[10px] font-mono">
+                                  <span className="text-gray-400">{sub.videosUsed}</span>
+                                  <span className="text-purple-300 font-bold">{sub.videosTotal}</span>
+                                </div>
+                                <div className="w-full bg-dark-950 h-1.5 rounded-full overflow-hidden border border-purple-500/20">
+                                  <div
+                                    className="bg-purple-500 h-full rounded-full"
+                                    style={{
+                                      width: `${Math.min(100, (sub.videosUsed / Math.max(1, sub.videosTotal)) * 100)}%`,
+                                    }}
+                                  />
+                                </div>
+                              </div>
+                            </td>
+
+                            {/* Payment Method */}
+                            <td className="py-3.5">
+                              <span className="text-xs text-gray-300 block">{sub.paymentMethod || "دفع سحابي"}</span>
+                            </td>
+
+                            {/* Admin Actions */}
+                            <td className="py-3.5 text-center">
+                              <div className="flex items-center justify-center gap-1.5">
+                                {/* Toggle Status */}
+                                <button
+                                  onClick={() => handleToggleSubStatus(sub.id)}
+                                  title={sub.status === "ACTIVE" || sub.status === "TRIAL" ? "تجميد وتعليق الاشتراك" : "إعادة تفعيل الاشتراك"}
+                                  className={`p-1.5 rounded-lg border text-xs transition-colors ${
+                                    sub.status === "ACTIVE" || sub.status === "TRIAL"
+                                      ? "bg-dark-850 hover:bg-dark-800 text-yellow-400 border-yellow-500/30"
+                                      : "bg-emerald-500/20 text-emerald-300 border-emerald-500/40"
+                                  }`}
+                                >
+                                  <span className="material-symbols-outlined text-[15px]">
+                                    {sub.status === "ACTIVE" || sub.status === "TRIAL" ? "pause" : "play_arrow"}
+                                  </span>
+                                </button>
+
+                                {/* Extend Days */}
+                                <button
+                                  onClick={() => {
+                                    setSelectedSub(sub);
+                                    setIsExtendModalOpen(true);
+                                  }}
+                                  title="تمديد فترة الصلاحية بالأيام"
+                                  className="p-1.5 rounded-lg bg-dark-850 hover:bg-dark-800 text-blue-400 border border-blue-500/30 transition-colors"
+                                >
+                                  <span className="material-symbols-outlined text-[15px]">more_time</span>
+                                </button>
+
+                                {/* Add Quota */}
+                                <button
+                                  onClick={() => {
+                                    setSelectedSub(sub);
+                                    setIsAddCreditsModalOpen(true);
+                                  }}
+                                  title="شحن رصيد إضافي (صور وفيديو)"
+                                  className="p-1.5 rounded-lg bg-dark-850 hover:bg-dark-800 text-emerald-400 border border-emerald-500/30 transition-colors"
+                                >
+                                  <span className="material-symbols-outlined text-[15px]">add_circle</span>
+                                </button>
+
+                                {/* Change Plan */}
+                                <button
+                                  onClick={() => {
+                                    setSelectedSub(sub);
+                                    setIsChangePlanModalOpen(true);
+                                  }}
+                                  title="ترقية أو تغيير باقة المستخدم"
+                                  className="p-1.5 rounded-lg bg-dark-850 hover:bg-dark-800 text-purple-400 border border-purple-500/30 transition-colors"
+                                >
+                                  <span className="material-symbols-outlined text-[15px]">published_with_changes</span>
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* ============ SUB-SECTION 2: PRICING PLANS CATALOG MANAGEMENT ============ */}
+              <div className="p-6 rounded-3xl bg-dark-900 border border-amber-500/25 space-y-5">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-amber-500/15">
+                  <div>
+                    <h3 className="text-base font-bold text-white flex items-center gap-2">
+                      <span className="material-symbols-outlined text-amber-400 text-[20px]">view_timeline</span>
+                      <span>إدارة باقات وخطط الأسعار (Plan Catalog & Quotas)</span>
+                    </h3>
+                    <p className="text-xs text-gray-400">
+                      تفعيل وإلغاء تفعيل الباقات، التحكم في الأسعار والحصص والمزايا المعروضة في صفحة الأسعار العامة
+                    </p>
+                  </div>
+
+                  <button
+                    onClick={() => setIsAddPlanModalOpen(true)}
+                    className="px-4 py-2 rounded-xl gold-button-gradient text-dark-950 font-bold text-xs flex items-center gap-1.5 shadow-md"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">add</span>
+                    <span>إنشاء خطة جديدة</span>
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {plansList.map((plan) => (
+                    <div
+                      key={plan.id}
+                      className={`p-5 rounded-2xl border transition-all flex flex-col justify-between gap-4 ${
+                        plan.active
+                          ? "bg-dark-950 border-amber-500/30 hover:border-amber-500/60"
+                          : "bg-dark-950/50 border-gray-800 opacity-60"
+                      }`}
+                    >
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <span
+                            className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
+                              plan.active
+                                ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/30"
+                                : "bg-red-500/15 text-red-300 border-red-500/30"
+                            }`}
+                          >
+                            {plan.active ? "مفعّلة على الموقع" : "معطّلة / مخفية"}
+                          </span>
+                          {plan.badge && (
+                            <span className="text-[10px] text-amber-400 font-bold bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
+                              {plan.badge}
+                            </span>
+                          )}
+                        </div>
+
+                        <div>
+                          <h4 className="text-sm font-bold text-white">{plan.name}</h4>
+                          <span className="text-[10px] text-gray-500 font-mono block">{plan.nameEn}</span>
+                        </div>
+
+                        <div className="pt-2 border-t border-amber-500/15 flex items-baseline justify-between">
+                          <span className="text-xs text-gray-400">السعر الشهري:</span>
+                          <strong className="text-lg font-mono text-emerald-400 font-bold">
+                            {plan.priceMonthly === 0 ? "مجاني ($0)" : `$${plan.priceMonthly}`}
+                          </strong>
+                        </div>
+
+                        <div className="space-y-1 text-[11px] text-gray-300 bg-dark-900 p-2.5 rounded-xl border border-amber-500/15">
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">حصة الصور 4K:</span>
+                            <strong className="text-white font-mono">{plan.imagesQuota} صورة</strong>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">الفيديو السينمائي:</span>
+                            <strong className="text-white font-mono">{plan.videosQuota} فيديو</strong>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">المحادثات:</span>
+                            <strong className="text-white font-mono">{plan.chatQuota} شات</strong>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Plan Admin Actions */}
+                      <div className="pt-3 border-t border-amber-500/15 flex items-center justify-between gap-2">
+                        <button
+                          onClick={() => handleTogglePlan(plan.id)}
+                          className={`w-full py-2 rounded-xl text-xs font-bold transition-all ${
+                            plan.active
+                              ? "bg-red-500/15 hover:bg-red-500/25 text-red-300 border border-red-500/30"
+                              : "bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40"
+                          }`}
+                        >
+                          {plan.active ? "إلغاء التفعيل" : "تفعيل الباقة"}
+                        </button>
+
+                        {!plan.isTrial && (
+                          <button
+                            onClick={() => handleDeletePlan(plan.id)}
+                            title="حذف الباقة"
+                            className="p-2 rounded-xl bg-dark-850 hover:bg-dark-800 text-gray-400 hover:text-red-400 border border-gray-700 transition-colors"
+                          >
+                            <span className="material-symbols-outlined text-[16px]">delete</span>
+                          </button>
+                        )}
+                      </div>
+
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+            </div>
+          )}
+
         </main>
       </div>
 
@@ -1533,6 +2084,368 @@ export default function SuperAdminDashboardPage() {
               </form>
             )}
 
+          </div>
+        </div>
+      )}
+
+      {/* ================= MODAL: ADD NEW PRICING PLAN ================= */}
+      {isAddPlanModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
+          <div className="relative w-full max-w-lg rounded-3xl glass-card p-6 md:p-8 border border-amber-500/40 shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto">
+            <button
+              onClick={() => setIsAddPlanModalOpen(false)}
+              className="absolute top-5 left-5 text-gray-400 hover:text-white"
+            >
+              <span className="material-symbols-outlined text-[24px]">close</span>
+            </button>
+
+            <div>
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs font-bold mb-1.5">
+                <span className="material-symbols-outlined text-[15px]">add_box</span>
+                <span>إضافة باقة تسعير سحابية جديدة للمنصة</span>
+              </div>
+              <h3 className="text-lg font-bold text-white">تفاصيل الباقة والحصص المقررة</h3>
+            </div>
+
+            <form onSubmit={handleCreateNewPlan} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-white mb-1">اسم الباقة (عربي)</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="مثال: باقة رواد الأعمال المستقلين (Creator Pro)"
+                  value={newPlanName}
+                  onChange={(e) => setNewPlanName(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl bg-dark-900 border border-amber-500/30 text-xs text-white"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-white mb-1">الاسم بالإنجليزي</label>
+                  <input
+                    type="text"
+                    placeholder="Creator Pro Tier"
+                    value={newPlanNameEn}
+                    onChange={(e) => setNewPlanNameEn(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl bg-dark-900 border border-amber-500/30 text-xs text-white font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-white mb-1">شارة الباقة (Badge)</label>
+                  <input
+                    type="text"
+                    placeholder="عرض محدود"
+                    value={newPlanBadge}
+                    onChange={(e) => setNewPlanBadge(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl bg-dark-900 border border-amber-500/30 text-xs text-white"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-white mb-1">السعر الشهري ($ USD)</label>
+                  <input
+                    type="number"
+                    required
+                    value={newPlanMonthlyPrice}
+                    onChange={(e) => setNewPlanMonthlyPrice(Number(e.target.value))}
+                    className="w-full px-3 py-2 rounded-xl bg-dark-900 border border-amber-500/30 text-xs text-emerald-400 font-mono font-bold"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-white mb-1">السعر السنوي ($ USD)</label>
+                  <input
+                    type="number"
+                    required
+                    value={newPlanYearlyPrice}
+                    onChange={(e) => setNewPlanYearlyPrice(Number(e.target.value))}
+                    className="w-full px-3 py-2 rounded-xl bg-dark-900 border border-amber-500/30 text-xs text-emerald-400 font-mono font-bold"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold text-white mb-1">رصيد الصور 4K</label>
+                  <input
+                    type="number"
+                    required
+                    value={newPlanImagesQuota}
+                    onChange={(e) => setNewPlanImagesQuota(Number(e.target.value))}
+                    className="w-full px-2.5 py-2 rounded-xl bg-dark-900 border border-amber-500/30 text-xs text-white font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-white mb-1">الفيديو السينمائي</label>
+                  <input
+                    type="number"
+                    required
+                    value={newPlanVideosQuota}
+                    onChange={(e) => setNewPlanVideosQuota(Number(e.target.value))}
+                    className="w-full px-2.5 py-2 rounded-xl bg-dark-900 border border-amber-500/30 text-xs text-white font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-white mb-1">المحادثات</label>
+                  <input
+                    type="number"
+                    required
+                    value={newPlanChatQuota}
+                    onChange={(e) => setNewPlanChatQuota(Number(e.target.value))}
+                    className="w-full px-2.5 py-2 rounded-xl bg-dark-900 border border-amber-500/30 text-xs text-white font-mono"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-white mb-1">
+                  المزايا المشمولة (افصل بينها بفاصلة ,)
+                </label>
+                <textarea
+                  rows={3}
+                  value={newPlanFeatures}
+                  onChange={(e) => setNewPlanFeatures(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl bg-dark-900 border border-amber-500/30 text-xs text-white leading-relaxed"
+                />
+              </div>
+
+              <div className="pt-2 flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsAddPlanModalOpen(false)}
+                  className="px-4 py-2 rounded-xl bg-dark-850 hover:bg-dark-800 text-gray-300 text-xs font-semibold"
+                >
+                  إلغاء
+                </button>
+                <button
+                  type="submit"
+                  className="px-6 py-2 rounded-xl gold-button-gradient text-dark-950 font-bold text-xs shadow-lg"
+                >
+                  إنشاء وتفعيل الباقة فورياً
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ================= MODAL: EXTEND SUBSCRIPTION DAYS ================= */}
+      {isExtendModalOpen && selectedSub && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
+          <div className="relative w-full max-w-md rounded-3xl glass-card p-6 md:p-8 border border-blue-500/40 shadow-2xl space-y-5">
+            <button
+              onClick={() => setIsExtendModalOpen(false)}
+              className="absolute top-5 left-5 text-gray-400 hover:text-white"
+            >
+              <span className="material-symbols-outlined text-[24px]">close</span>
+            </button>
+
+            <div>
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/15 border border-blue-500/30 text-blue-300 text-xs font-bold mb-1.5">
+                <span className="material-symbols-outlined text-[15px]">more_time</span>
+                <span>تمديد صلاحية الاشتراك</span>
+              </div>
+              <h3 className="text-lg font-bold text-white">{selectedSub.userName}</h3>
+              <p className="text-xs text-gray-400 font-mono mt-0.5">{selectedSub.userEmail}</p>
+            </div>
+
+            <form onSubmit={handleConfirmExtend} className="space-y-4">
+              <div className="p-3.5 rounded-2xl bg-dark-950 border border-blue-500/20 text-xs space-y-1">
+                <div className="flex justify-between">
+                  <span className="text-gray-400">الباقة الحالية:</span>
+                  <strong className="text-white">{selectedSub.planName}</strong>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-400">الصلاحية الحالية:</span>
+                  <strong className="text-amber-400 font-mono">{selectedSub.daysRemaining} يوماً</strong>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-white mb-2">اختر عدد الأيام الإضافية:</label>
+                <div className="grid grid-cols-4 gap-2">
+                  {[7, 14, 30, 90].map((days) => (
+                    <button
+                      key={days}
+                      type="button"
+                      onClick={() => setExtendDaysAmount(days)}
+                      className={`py-2 rounded-xl text-xs font-bold transition-all border ${
+                        extendDaysAmount === days
+                          ? "bg-blue-600 border-blue-400 text-white shadow-md"
+                          : "bg-dark-900 border-blue-500/20 text-gray-400 hover:text-white"
+                      }`}
+                    >
+                      +{days} يوم
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="pt-2 flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsExtendModalOpen(false)}
+                  className="px-4 py-2 rounded-xl bg-dark-850 hover:bg-dark-800 text-gray-300 text-xs"
+                >
+                  إلغاء
+                </button>
+                <button
+                  type="submit"
+                  className="px-6 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-lg"
+                >
+                  تأكيد التمديد (+{extendDaysAmount} يوماً)
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ================= MODAL: ADD EXTRA CREDITS ================= */}
+      {isAddCreditsModalOpen && selectedSub && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
+          <div className="relative w-full max-w-md rounded-3xl glass-card p-6 md:p-8 border border-emerald-500/40 shadow-2xl space-y-5">
+            <button
+              onClick={() => setIsAddCreditsModalOpen(false)}
+              className="absolute top-5 left-5 text-gray-400 hover:text-white"
+            >
+              <span className="material-symbols-outlined text-[24px]">close</span>
+            </button>
+
+            <div>
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs font-bold mb-1.5">
+                <span className="material-symbols-outlined text-[15px]">add_circle</span>
+                <span>شحن رصيد سحابي إضافي</span>
+              </div>
+              <h3 className="text-lg font-bold text-white">{selectedSub.userName}</h3>
+              <p className="text-xs text-gray-400 font-mono mt-0.5">{selectedSub.userEmail}</p>
+            </div>
+
+            <form onSubmit={handleConfirmAddCredits} className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-white mb-1.5">صور إضافية (4K)</label>
+                  <input
+                    type="number"
+                    min="1"
+                    required
+                    value={extraImagesAmount}
+                    onChange={(e) => setExtraImagesAmount(Number(e.target.value))}
+                    className="w-full px-3 py-2 rounded-xl bg-dark-900 border border-emerald-500/30 text-xs text-emerald-400 font-mono font-bold"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-white mb-1.5">فيديوهات سينمائية</label>
+                  <input
+                    type="number"
+                    min="1"
+                    required
+                    value={extraVideosAmount}
+                    onChange={(e) => setExtraVideosAmount(Number(e.target.value))}
+                    className="w-full px-3 py-2 rounded-xl bg-dark-900 border border-purple-500/30 text-xs text-purple-300 font-mono font-bold"
+                  />
+                </div>
+              </div>
+
+              <div className="p-3 rounded-2xl bg-dark-950 border border-emerald-500/20 text-[11px] text-gray-300 space-y-1">
+                <div>سيتم إضافة هذا الرصيد فوراً إلى حساب المستخدم في قاعدة البيانات السحابية.</div>
+              </div>
+
+              <div className="pt-2 flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsAddCreditsModalOpen(false)}
+                  className="px-4 py-2 rounded-xl bg-dark-850 hover:bg-dark-800 text-gray-300 text-xs"
+                >
+                  إلغاء
+                </button>
+                <button
+                  type="submit"
+                  className="px-6 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-lg"
+                >
+                  شحن الرصيد فوراً
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ================= MODAL: CHANGE / UPGRADE PLAN ================= */}
+      {isChangePlanModalOpen && selectedSub && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
+          <div className="relative w-full max-w-md rounded-3xl glass-card p-6 md:p-8 border border-purple-500/40 shadow-2xl space-y-5">
+            <button
+              onClick={() => setIsChangePlanModalOpen(false)}
+              className="absolute top-5 left-5 text-gray-400 hover:text-white"
+            >
+              <span className="material-symbols-outlined text-[24px]">close</span>
+            </button>
+
+            <div>
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-500/15 border border-purple-500/30 text-purple-300 text-xs font-bold mb-1.5">
+                <span className="material-symbols-outlined text-[15px]">published_with_changes</span>
+                <span>ترقية أو تغيير باقة المستخدم</span>
+              </div>
+              <h3 className="text-lg font-bold text-white">{selectedSub.userName}</h3>
+              <p className="text-xs text-gray-400 font-mono mt-0.5">الباقة الحالية: {selectedSub.planName}</p>
+            </div>
+
+            <form onSubmit={handleConfirmChangePlan} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-white mb-2">اختر الباقة الجديدة المراد تطبيقها:</label>
+                <div className="space-y-2">
+                  {plansList.map((p) => (
+                    <label
+                      key={p.id}
+                      className={`flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-all ${
+                        targetPlanId === p.id
+                          ? "bg-purple-500/20 border-purple-500 text-white"
+                          : "bg-dark-900 border-purple-500/20 text-gray-400 hover:text-white"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <input
+                          type="radio"
+                          name="targetPlan"
+                          value={p.id}
+                          checked={targetPlanId === p.id}
+                          onChange={(e) => setTargetPlanId(e.target.value)}
+                          className="accent-purple-500"
+                        />
+                        <div>
+                          <span className="text-xs font-bold block text-white">{p.name}</span>
+                          <span className="text-[10px] text-gray-400">
+                            {p.imagesQuota} صورة • {p.videosQuota} فيديو
+                          </span>
+                        </div>
+                      </div>
+                      <span className="text-xs font-mono text-emerald-400 font-bold">
+                        {p.priceMonthly === 0 ? "مجاني" : `$${p.priceMonthly}/شهر`}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div className="pt-2 flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsChangePlanModalOpen(false)}
+                  className="px-4 py-2 rounded-xl bg-dark-850 hover:bg-dark-800 text-gray-300 text-xs"
+                >
+                  إلغاء
+                </button>
+                <button
+                  type="submit"
+                  className="px-6 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs shadow-lg"
+                >
+                  تأكيد ترقية الباقة
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
