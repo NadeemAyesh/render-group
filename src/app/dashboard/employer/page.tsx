@@ -83,6 +83,23 @@ export default function EmployerDashboardPage() {
     }
   }, []);
 
+  // Load custom applicants submitted from public jobs page
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const stored = localStorage.getItem("renderlancer_employer_applicants");
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setApplicants([...parsed, ...INITIAL_APPLICANTS]);
+          }
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+  }, []);
+
   const handleLogout = () => {
     clearActiveSession();
     router.push("/login");
@@ -104,28 +121,74 @@ export default function EmployerDashboardPage() {
     if (typeof window !== "undefined") {
       try {
         const stored = localStorage.getItem("renderlancer_custom_jobs");
-        if (stored) {
-          const parsed = JSON.parse(stored);
-          if (Array.isArray(parsed)) {
-            setMyPostedJobs(parsed);
+        const parsed = stored ? JSON.parse(stored) : [];
+        const defaultCompanyJob = {
+          id: "job-alquds-100",
+          title: "تطوير متجر إلكتروني ذكي وتطبيق جوال مع ربط بوابات دفع بنك فلسطين وUSDT",
+          company: activeUser?.companyName || "شركة القدس للحلول الذكية • Al-Quds Smart Solutions",
+          companyLocation: activeUser?.location || "فلسطين - رام الله (عن بعد)",
+          budget: "$1,450.00",
+          duration: "15 يوماً",
+          postedTime: "منذ 15 دقيقة (جديد)",
+          proposalsCount: applicants.length,
+          description:
+            "نبحث في شركة القدس للحلول الذكية عن مهندس/فريق برمجيات متمكن لبناء متجر وتطبيق خدمات لوجستية متكامل. يشمل النظام لوحة تحكم للطلبات، ربط بوابات دفع بنك فلسطين وUSDT، وواجهات مستخدم سريعة متجاوبة مع الهواتف المحمولة.",
+          skills: ["Next.js 15", "Flutter", "PostgreSQL", "بنك فلسطين API", "Tailwind CSS"],
+          postedBy: "EMPLOYER",
+        };
+        const all = Array.isArray(parsed) && parsed.length > 0 ? parsed : [defaultCompanyJob];
+        setMyPostedJobs(all);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+  }, [postJobSuccess, activeUser, applicants.length]);
+
+  const handleAcceptApplicant = (id: string) => {
+    const updated = applicants.map((app) =>
+      app.id === id ? { ...app, status: "accepted" as const } : app
+    );
+    setApplicants(updated);
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem("renderlancer_employer_applicants", JSON.stringify(updated));
+        // Also update the proposal status in renderlancer_proposals so the talent sees it accepted!
+        const targetApp = applicants.find((a) => a.id === id);
+        if (targetApp) {
+          const rawProps = localStorage.getItem("renderlancer_proposals");
+          if (rawProps) {
+            const props = JSON.parse(rawProps);
+            const updatedProps = props.map((p: any) => {
+              if (p.jobTitle === targetApp.jobTitle) {
+                return {
+                  ...p,
+                  status: "تم قبولك • بانتظار بدء العمل",
+                  statusClass: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
+                };
+              }
+              return p;
+            });
+            localStorage.setItem("renderlancer_proposals", JSON.stringify(updatedProps));
           }
         }
       } catch (e) {
         console.error(e);
       }
     }
-  }, [postJobSuccess]);
-
-  const handleAcceptApplicant = (id: string) => {
-    setApplicants((prev) =>
-      prev.map((app) => (app.id === id ? { ...app, status: "accepted" } : app))
-    );
   };
 
   const handleRejectApplicant = (id: string) => {
-    setApplicants((prev) =>
-      prev.map((app) => (app.id === id ? { ...app, status: "rejected" } : app))
+    const updated = applicants.map((app) =>
+      app.id === id ? { ...app, status: "rejected" as const } : app
     );
+    setApplicants(updated);
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem("renderlancer_employer_applicants", JSON.stringify(updated));
+      } catch (e) {
+        console.error(e);
+      }
+    }
   };
 
   const handlePostJob = (e: React.FormEvent) => {

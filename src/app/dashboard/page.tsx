@@ -154,7 +154,9 @@ export default function TalentDashboardPage() {
         const updated = [newRecord, ...proposalsList];
         setProposalsList(updated);
         try {
-          localStorage.setItem("renderlancer_proposals", JSON.stringify([newRecord]));
+          const stored = localStorage.getItem("renderlancer_proposals");
+          const list = stored ? JSON.parse(stored) : [];
+          localStorage.setItem("renderlancer_proposals", JSON.stringify([newRecord, ...list]));
         } catch (e) {
           console.error(e);
         }
@@ -406,7 +408,7 @@ export default function TalentDashboardPage() {
             <span className="material-symbols-outlined text-gold-400 text-[20px]">send_and_archive</span>
             تتبع العروض المقدمة من طرفك (Proposals Tracker)
           </h3>
-          <span className="text-xs text-gold-400 font-mono">3 عروض نشطة</span>
+          <span className="text-xs text-gold-400 font-mono">{proposalsList.length} عروض نشطة</span>
         </div>
 
         <div className="overflow-x-auto">

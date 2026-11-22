@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { ActivationModal } from "@/components/studio/ActivationModal";
+import { getActiveSession } from "@/lib/auth-service";
 
 interface JobItem {
   id: string;
@@ -24,6 +25,23 @@ interface JobItem {
 }
 
 const JOBS_DATA: JobItem[] = [
+  {
+    id: "job-alquds-100",
+    title: "تطوير متجر إلكتروني ذكي وتطبيق جوال مع ربط بوابات دفع بنك فلسطين وUSDT",
+    company: "شركة القدس للحلول الذكية • Al-Quds Smart Solutions",
+    companyLocation: "فلسطين - رام الله (عن بعد)",
+    isDiasporaSponsor: true,
+    category: "dev",
+    budget: "$1,450.00",
+    duration: "15 يوماً",
+    postedTime: "منذ 15 دقيقة (جديد)",
+    proposalsCount: 0,
+    aiMatch: 99,
+    description:
+      "نبحث في شركة القدس للحلول الذكية عن مهندس/فريق برمجيات متمكن لبناء متجر وتطبيق خدمات لوجستية متكامل. يشمل النظام لوحة تحكم للطلبات، ربط بوابات دفع بنك فلسطين وUSDT، وواجهات مستخدم سريعة متجاوبة مع الهواتف المحمولة.",
+    skills: ["Next.js 15", "Flutter", "PostgreSQL", "بنك فلسطين API", "Tailwind CSS"],
+    postedBy: "EMPLOYER",
+  },
   {
     id: "job-101",
     title: "هندسة وبناء منصة SaaS متكاملة بـ Next.js 15 و PostgreSQL",
@@ -159,6 +177,13 @@ export default function JobsPage() {
 
     if (typeof window !== "undefined" && activeJobModal) {
       try {
+        const session = getActiveSession();
+        const applicantName = session?.fullName || "طارق منصور القدوة";
+        const applicantEmail = session?.email || "jobseeker@render.ps";
+        const applicantLocation = session?.location || "فلسطين - قطاع غزة (عن بعد)";
+        const applicantAvatar = session?.avatar || "ط.م";
+
+        // 1. Save to proposals (seen in job seeker dashboard)
         const stored = localStorage.getItem("renderlancer_proposals");
         const list = stored ? JSON.parse(stored) : [];
         const newRecord = {
@@ -169,8 +194,29 @@ export default function JobsPage() {
           days: `${proposalDays} أيام`,
           status: "قيد المراجعة الفنية",
           statusClass: "bg-gold-500/15 text-gold-300 border-gold-500/30",
+          applicantName,
+          applicantEmail,
         };
         localStorage.setItem("renderlancer_proposals", JSON.stringify([newRecord, ...list]));
+
+        // 2. Save to applicants (seen in employer dashboard for the hiring company)
+        const storedApps = localStorage.getItem("renderlancer_employer_applicants");
+        const appsList = storedApps ? JSON.parse(storedApps) : [];
+        const newApp = {
+          id: `app-${Date.now()}`,
+          name: applicantName,
+          title: "Senior Full-Stack & AI Engineer",
+          location: applicantLocation,
+          avatar: applicantAvatar,
+          jobTitle: activeJobModal.title,
+          proposedRate: `$${proposalBid}.00`,
+          duration: `${proposalDays} أيام`,
+          aiMatch: 99,
+          coverLetter: proposalCover,
+          skills: activeJobModal.skills,
+          status: "pending",
+        };
+        localStorage.setItem("renderlancer_employer_applicants", JSON.stringify([newApp, ...appsList]));
       } catch (err) {
         console.error(err);
       }

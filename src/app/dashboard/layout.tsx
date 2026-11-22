@@ -235,47 +235,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         {/* ================= MAIN DASHBOARD BODY ================= */}
         <div className="flex-1 flex flex-col min-w-0">
           
-          {/* Top Bar with Live Role Simulator Switcher & Logout */}
+          {/* Top Bar with Enterprise Real Header */}
           <header className="h-20 bg-dark-900/90 border-b border-gold-500/20 px-6 lg:px-8 flex items-center justify-between gap-4 sticky top-0 z-30 backdrop-blur-md">
             
-            {/* Live Role Switcher (Simulator) */}
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-gold-400 font-bold hidden sm:inline-flex items-center gap-1">
-                <span className="material-symbols-outlined text-[16px]">manage_accounts</span>
-                محاكي الأدوار:
+            {/* Real Account & Portal Title */}
+            <div className="flex items-center gap-3">
+              <span className="text-sm font-bold text-white flex items-center gap-2">
+                <span className="material-symbols-outlined text-gold-400 text-[20px]">space_dashboard</span>
+                بوابة الكفاءات والمستقلين (Talent Portal)
               </span>
-              <div className="flex items-center gap-1 bg-dark-950 p-1 rounded-xl border border-gold-500/25">
-                <button
-                  onClick={() => switchRole("JOB_SEEKER")}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                    currentUser.role === "JOB_SEEKER"
-                      ? "gold-button-gradient text-dark-950 shadow-md"
-                      : "text-gray-400 hover:text-white"
-                  }`}
-                >
-                  باحث عن عمل
-                </button>
-                <button
-                  onClick={() => switchRole("CONTENT_EDITOR")}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                    currentUser.role === "CONTENT_EDITOR"
-                      ? "bg-emerald-500 text-dark-950 shadow-md"
-                      : "text-gray-400 hover:text-white"
-                  }`}
-                >
-                  محرر محتوى
-                </button>
-                <button
-                  onClick={() => switchRole("SUPER_ADMIN")}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                    currentUser.role === "SUPER_ADMIN"
-                      ? "bg-purple-500 text-white shadow-md"
-                      : "text-gray-400 hover:text-white"
-                  }`}
-                >
-                  Super Admin
-                </button>
-              </div>
+              <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 text-[10px] font-bold">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span>حساب موثق ومعتمد • وصول سحابي نشط</span>
+              </span>
             </div>
 
             {/* Wallet, Theme, Permissions & Logout */}
