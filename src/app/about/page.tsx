@@ -1,13 +1,25 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { ActivationModal } from "@/components/studio/ActivationModal";
+import { getSiteContent, SiteContent, DEFAULT_SITE_CONTENT } from "@/lib/cms-service";
 
 export default function AboutPage() {
   const [isActivationOpen, setIsActivationOpen] = useState(false);
+  const [cms, setCms] = useState<SiteContent>(DEFAULT_SITE_CONTENT);
+
+  useEffect(() => {
+    setCms(getSiteContent());
+    const handleCmsChange = (e: Event) => {
+      const customEvent = e as CustomEvent<SiteContent>;
+      setCms(customEvent.detail || getSiteContent());
+    };
+    window.addEventListener("renderlancer_cms_change", handleCmsChange);
+    return () => window.removeEventListener("renderlancer_cms_change", handleCmsChange);
+  }, []);
 
   return (
     <div className="min-h-screen bg-dark-950 text-gray-100 flex flex-col font-sans selection:bg-gold-500 selection:text-dark-950">
@@ -29,10 +41,7 @@ export default function AboutPage() {
           </h1>
 
           <p className="max-w-3xl mx-auto text-base md:text-lg text-gray-300 leading-relaxed">
-            مجموعة <strong className="text-white">Render Group</strong> هي تكتل تقني وإبداعي رائد يجمع بين
-            سوق العمل الحر الرقمي المتخصص (<strong className="text-gold-400">RenderLancer</strong>)
-            وترسانة أدوات الإنتاج بالذكاء الاصطناعي الموحدة (<strong className="text-gold-400">Render Studio</strong>).
-            تأسست برؤية استراتيجية لربط نخبة كفاءات فلسطين في قطاع غزة والضفة والقدس بشركات الشتات ورؤوس الأموال العالمية.
+            {cms.aboutStory}
           </p>
 
           <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
@@ -89,9 +98,7 @@ export default function AboutPage() {
               تحويل التحديات والحصار إلى <span className="gold-gradient-text">قوة إنتاج رقمية عالمية</span>
             </h2>
             <p className="text-sm md:text-base text-gray-300 leading-relaxed">
-              تأسست مجموعة ريندر استجابة لحاجة ملحة: بالرغم من الظروف الاستثنائية والحصار في غزة والضفة،
-              يمتلك الشباب الفلسطيني أعلى معدلات التعليم البرمجي والإبداعي في الشرق الأوسط. جاءت ريندر لتبني
-              جسراً مستداماً يعتمد على الكفاءة والتنافسية وليس التبرعات.
+              {cms.aboutVision}
             </p>
             <div className="space-y-3">
               <div className="flex items-start gap-3">

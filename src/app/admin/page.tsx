@@ -3,7 +3,24 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { getActiveSession, clearActiveSession, AuthUser } from "@/lib/auth-service";
+import {
+  getActiveSession,
+  clearActiveSession,
+  getAllUsersArray,
+  adminUpdateUser,
+  adminDeleteUser,
+  registerNewUser,
+  AuthUser,
+  AuthRole,
+  ROLE_LABELS,
+} from "@/lib/auth-service";
+import {
+  getSiteContent,
+  saveSiteContent,
+  resetSiteContent,
+  SiteContent,
+  DEFAULT_SITE_CONTENT,
+} from "@/lib/cms-service";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
 
 interface PendingPayout {
@@ -50,16 +67,46 @@ const INITIAL_PAYOUTS: PendingPayout[] = [
   },
 ];
 
+const AI_TOOLS_CATALOG = [
+  { id: "render-chat", name: "ريندر شات (Render Chat)", category: "المساعد اللغوي والبرمجي", status: "ACTIVE", requests: "24,800" },
+  { id: "gpt-image-2", name: "GPT Image 2 Pro", category: "توليد وتعديل الصور 4K", status: "ACTIVE", requests: "18,450" },
+  { id: "nano-banana", name: "Nano Banana Pro", category: "تحسين وتفريغ الصور", status: "ACTIVE", requests: "12,100" },
+  { id: "veo-3-1", name: "Veo 3.1 السينمائي", category: "توليد الفيديو السينمائي", status: "ACTIVE", requests: "9,820" },
+  { id: "seedance-2-0", name: "Seedance 2.0 Motion", category: "محاكاة الحركة والفيزياء", status: "ACTIVE", requests: "7,400" },
+  { id: "omni-transition", name: "انتقال فريمين (Omni)", category: "الانتقالات السينمائية والصوت", status: "ACTIVE", requests: "6,150" },
+  { id: "motion-master", name: "Motion Master Pro", category: "تحريك الشعارات والرسوم", status: "ACTIVE", requests: "5,300" },
+  { id: "virtual-studio", name: "استوديو التصوير الافتراضي", category: "جلسات تصوير المنتجات 3D", status: "ACTIVE", requests: "4,900" },
+  { id: "face-swap", name: "تبديل الوجوه / الأشخاص", category: "المطابقة وتغيير الملامح", status: "ACTIVE", requests: "3,850" },
+  { id: "virtual-try-on", name: "القياس الافتراضي (Try-on)", category: "محاكاة الأزياء والملابس", status: "ACTIVE", requests: "3,400" },
+  { id: "prompt-extractor", name: "استخراج البرومبت الهندسي", category: "الهندسة العكسية للأوامر", status: "ACTIVE", requests: "2,980" },
+  { id: "ai-avatar", name: "أفتار الذكاء الاصطناعي", category: "المتحدث الرقمي الناطق", status: "ACTIVE", requests: "2,150" },
+];
+
 export default function SuperAdminDashboardPage() {
   const router = useRouter();
   const [activeUser, setActiveUser] = useState<AuthUser | null>(null);
+  const [activeTab, setActiveTab] = useState<"overview" | "users" | "jobs" | "platforms" | "cms" | "escrow">("overview");
+
+  // Payouts State
   const [payouts, setPayouts] = useState<PendingPayout[]>(INITIAL_PAYOUTS);
-  
-  // Instant Code Generator State
+
+  // Users Management State
+  const [usersList, setUsersList] = useState<AuthUser[]>([]);
+  const [userRoleFilter, setUserRoleFilter] = useState<string>("ALL");
+  const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
+  const [newUserName, setNewUserName] = useState("");
+  const [newUserEmail, setNewUserEmail] = useState("");
+  const [newUserPassword, setNewUserPassword] = useState("password123");
+  const [newUserRole, setNewUserRole] = useState<AuthRole>("JOB_SEEKER");
+  const [newUserLocation, setNewUserLocation] = useState("فلسطين - قطاع غزة");
+  const [newUserCompanyName, setNewUserCompanyName] = useState("");
+
+  // Code Generator State
   const [generatedCode, setGeneratedCode] = useState<string | null>(null);
   const [planDuration, setPlanDuration] = useState("30");
 
-  // Super Admin Central Job Management State
+  // Central Jobs State
+  const [allPlatformJobs, setAllPlatformJobs] = useState<any[]>([]);
   const [isAddJobOpen, setIsAddJobOpen] = useState(false);
   const [jobPostSuccess, setJobPostSuccess] = useState(false);
   const [adminJobTitle, setAdminJobTitle] = useState("");
@@ -71,7 +118,18 @@ export default function SuperAdminDashboardPage() {
   const [adminJobSkills, setAdminJobSkills] = useState("Next.js 15, PostgreSQL, TypeScript, Tailwind");
   const [adminJobDesc, setAdminJobDesc] = useState("مشروع رسمي معتمد تحت إشراف Render Group وإدارة المنصة المركزية مع ضمان مالي كامل وتوثيق متكامل.");
   const [adminJobIsDiaspora, setAdminJobIsDiaspora] = useState(true);
-  const [allPlatformJobs, setAllPlatformJobs] = useState<any[]>([]);
+
+  // Tools Management State
+  const [toolsList, setToolsList] = useState(AI_TOOLS_CATALOG);
+
+  // CMS State
+  const [cmsForm, setCmsForm] = useState<SiteContent>(DEFAULT_SITE_CONTENT);
+  const [cmsSaveToast, setCmsSaveToast] = useState(false);
+
+  // Load Initial Data
+  const refreshUsers = () => {
+    setUsersList(getAllUsersArray());
+  };
 
   const loadPlatformJobs = () => {
     if (typeof window !== "undefined") {
@@ -94,7 +152,9 @@ export default function SuperAdminDashboardPage() {
     if (session) {
       setActiveUser(session);
     }
+    refreshUsers();
     loadPlatformJobs();
+    setCmsForm(getSiteContent());
   }, []);
 
   const handleLogout = () => {
@@ -102,18 +162,70 @@ export default function SuperAdminDashboardPage() {
     router.push("/login");
   };
 
-  const handleGenerateCode = () => {
-    const randomHex = Math.random().toString(36).substring(2, 6).toUpperCase();
-    const newCode = `RENDER-GOLD-${randomHex}`;
-    setGeneratedCode(newCode);
-  };
-
+  // Payout actions
   const handleApprovePayout = (id: string) => {
     setPayouts((prev) =>
       prev.map((p) => (p.id === id ? { ...p, status: "approved" } : p))
     );
   };
 
+  // User Actions
+  const handleToggleUserStatus = (user: AuthUser) => {
+    const newStatus = user.status === "ACTIVE" ? "SUSPENDED" : "ACTIVE";
+    adminUpdateUser(user.email, { status: newStatus });
+    refreshUsers();
+  };
+
+  const handleToggleUserVerification = (user: AuthUser) => {
+    const newVerification = !user.verified;
+    adminUpdateUser(user.email, { verified: newVerification });
+    refreshUsers();
+  };
+
+  const handleRoleChange = (email: string, newRole: AuthRole) => {
+    adminUpdateUser(email, { role: newRole });
+    refreshUsers();
+  };
+
+  const handleDeleteUser = (email: string) => {
+    if (window.confirm(`هل أنت متأكد من حذف الحساب (${email}) نهائياً؟`)) {
+      adminDeleteUser(email);
+      refreshUsers();
+    }
+  };
+
+  const handleCreateNewUser = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newUserEmail.trim()) return;
+
+    const user: AuthUser = {
+      id: `usr-${Date.now()}`,
+      fullName: newUserName || newUserEmail.split("@")[0],
+      email: newUserEmail.trim().toLowerCase(),
+      role: newUserRole,
+      location: newUserLocation,
+      companyName: newUserRole === "EMPLOYER" ? newUserCompanyName : undefined,
+      avatar: (newUserName || newUserEmail).slice(0, 2).toUpperCase(),
+      status: "ACTIVE",
+      verified: true,
+      joinedDate: new Date().toISOString().split("T")[0],
+    };
+
+    registerNewUser(user, newUserPassword);
+    refreshUsers();
+    setIsAddUserModalOpen(false);
+    setNewUserEmail("");
+    setNewUserName("");
+  };
+
+  // Code generator
+  const handleGenerateCode = () => {
+    const randomHex = Math.random().toString(36).substring(2, 6).toUpperCase();
+    const newCode = `RENDER-GOLD-${randomHex}`;
+    setGeneratedCode(newCode);
+  };
+
+  // Admin Job actions
   const handleAdminPostJob = (e: React.FormEvent) => {
     e.preventDefault();
     if (!adminJobTitle.trim()) return;
@@ -166,10 +278,42 @@ export default function SuperAdminDashboardPage() {
     }
   };
 
+  // Tools actions
+  const handleToggleToolStatus = (toolId: string) => {
+    setToolsList((prev) =>
+      prev.map((t) =>
+        t.id === toolId ? { ...t, status: t.status === "ACTIVE" ? "MAINTENANCE" : "ACTIVE" } : t
+      )
+    );
+  };
+
+  // CMS actions
+  const handleSaveCms = (e: React.FormEvent) => {
+    e.preventDefault();
+    saveSiteContent(cmsForm);
+    setCmsSaveToast(true);
+    setTimeout(() => setCmsSaveToast(false), 3000);
+  };
+
+  const handleResetCms = () => {
+    if (window.confirm("هل تريد استعادة النصوص الافتراضية للموقع بالكامل؟")) {
+      const def = resetSiteContent();
+      setCmsForm(def);
+      setCmsSaveToast(true);
+      setTimeout(() => setCmsSaveToast(false), 3000);
+    }
+  };
+
+  // Filtered Users
+  const filteredUsers = usersList.filter((u) => {
+    if (userRoleFilter === "ALL") return true;
+    return u.role === userRoleFilter;
+  });
+
   return (
-    <div className="min-h-screen bg-dark-950 text-gray-100 flex flex-col md:flex-row">
+    <div className="min-h-screen bg-dark-950 text-gray-100 flex flex-col md:flex-row font-sans">
       
-      {/* ================= METRONIC-STYLE ADMIN SIDEBAR ================= */}
+      {/* ================= SUPER ADMIN METRONIC SIDEBAR ================= */}
       <aside className="w-full md:w-64 bg-dark-900 border-l border-purple-500/30 flex flex-col justify-between shrink-0">
         <div>
           <div className="h-20 px-6 flex items-center gap-3 border-b border-purple-500/20">
@@ -188,7 +332,7 @@ export default function SuperAdminDashboardPage() {
             </Link>
           </div>
 
-          {/* Super Admin Badge */}
+          {/* Super Admin User Card */}
           <div className="p-4 mx-4 my-4 rounded-2xl bg-purple-950/40 border border-purple-500/30 flex items-center justify-between">
             <div className="flex items-center gap-2.5 min-w-0">
               <div className="w-10 h-10 rounded-xl bg-purple-500/20 text-purple-300 border border-purple-400/40 flex items-center justify-center font-bold text-sm shrink-0">
@@ -196,10 +340,10 @@ export default function SuperAdminDashboardPage() {
               </div>
               <div className="min-w-0">
                 <span className="block text-xs font-bold text-white truncate">
-                  {activeUser?.fullName || "المهندس معاذ"}
+                  {activeUser?.fullName || "المهندس نديم (Super Admin)"}
                 </span>
                 <span className="inline-block text-[9px] px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 font-mono font-bold mt-0.5">
-                  {activeUser?.role || "SUPER_ADMIN (مطلق)"}
+                  SUPER_ADMIN (صلاحيات مطلقة)
                 </span>
               </div>
             </div>
@@ -212,14 +356,89 @@ export default function SuperAdminDashboardPage() {
             </button>
           </div>
 
+          {/* Nav Tabs */}
           <nav className="px-3 space-y-1 text-xs font-semibold">
-            <Link
-              href="/admin"
-              className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-purple-500/20 text-purple-300 border border-purple-500/30"
+            <button
+              onClick={() => setActiveTab("overview")}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${
+                activeTab === "overview"
+                  ? "bg-purple-500/20 text-purple-300 border border-purple-500/30"
+                  : "text-gray-300 hover:bg-dark-850 hover:text-white"
+              }`}
             >
               <span className="material-symbols-outlined text-[18px]">dashboard</span>
               <span>مركز القيادة الشامل</span>
-            </Link>
+            </button>
+
+            <button
+              onClick={() => setActiveTab("users")}
+              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all ${
+                activeTab === "users"
+                  ? "bg-purple-500/20 text-purple-300 border border-purple-500/30"
+                  : "text-gray-300 hover:bg-dark-850 hover:text-white"
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <span className="material-symbols-outlined text-[18px] text-purple-400">group</span>
+                <span>إدارة حسابات المستخدمين</span>
+              </div>
+              <span className="px-2 py-0.5 rounded-full bg-dark-850 text-gray-300 text-[10px] font-mono">
+                {usersList.length}
+              </span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab("jobs")}
+              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all ${
+                activeTab === "jobs"
+                  ? "bg-purple-500/20 text-purple-300 border border-purple-500/30"
+                  : "text-gray-300 hover:bg-dark-850 hover:text-white"
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <span className="material-symbols-outlined text-[18px] text-blue-400">work</span>
+                <span>إدارة الوظائف والفرص</span>
+              </div>
+              <span className="px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 text-[10px] font-mono">
+                {allPlatformJobs.length}
+              </span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab("platforms")}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${
+                activeTab === "platforms"
+                  ? "bg-purple-500/20 text-purple-300 border border-purple-500/30"
+                  : "text-gray-300 hover:bg-dark-850 hover:text-white"
+              }`}
+            >
+              <span className="material-symbols-outlined text-[18px] text-gold-400">token</span>
+              <span>إدارة المنصات واستوديو الـ AI</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab("cms")}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${
+                activeTab === "cms"
+                  ? "bg-purple-500/20 text-purple-300 border border-purple-500/30"
+                  : "text-gray-300 hover:bg-dark-850 hover:text-white"
+              }`}
+            >
+              <span className="material-symbols-outlined text-[18px] text-emerald-400">edit_note</span>
+              <span>إدارة محتوى الموقع (CMS)</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab("escrow")}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${
+                activeTab === "escrow"
+                  ? "bg-purple-500/20 text-purple-300 border border-purple-500/30"
+                  : "text-gray-300 hover:bg-dark-850 hover:text-white"
+              }`}
+            >
+              <span className="material-symbols-outlined text-[18px] text-emerald-400">account_balance</span>
+              <span>الضمان المالي وسحوبات فلسطين</span>
+            </button>
 
             <Link
               href="/admin/permissions"
@@ -228,83 +447,59 @@ export default function SuperAdminDashboardPage() {
               <span className="material-symbols-outlined text-[18px] text-purple-400">account_tree</span>
               <span>شجرة الصلاحيات (RBAC)</span>
             </Link>
-
-            <a
-              href="#escrow-ledger"
-              className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-300 hover:bg-dark-850 hover:text-white transition-colors"
-            >
-              <span className="material-symbols-outlined text-[18px] text-emerald-400">account_balance</span>
-              <span>الضمان المالي وسحوبات فلسطين</span>
-            </a>
-
-            <a
-              href="#code-generator"
-              className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-300 hover:bg-dark-850 hover:text-white transition-colors"
-            >
-              <span className="material-symbols-outlined text-[18px] text-gold-400">key</span>
-              <span>توليد أكواد التفعيل (Studio)</span>
-            </a>
-
-            <a
-              href="#jobs-management"
-              className="flex items-center justify-between px-3 py-2.5 rounded-xl text-gray-300 hover:bg-dark-850 hover:text-white transition-colors"
-            >
-              <div className="flex items-center gap-3">
-                <span className="material-symbols-outlined text-[18px] text-blue-400">work</span>
-                <span>إدارة ونشر الوظائف</span>
-              </div>
-              {allPlatformJobs.length > 0 && (
-                <span className="px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 text-[10px] font-bold font-mono">
-                  {allPlatformJobs.length}
-                </span>
-              )}
-            </a>
           </nav>
         </div>
 
-        {/* Quick Links back to Portals */}
+        {/* Quick Portal Switchers */}
         <div className="p-4 border-t border-purple-500/20 space-y-2">
           <Link
-            href="/dashboard"
+            href="/jobs"
             className="w-full flex items-center justify-center gap-2 py-2 rounded-xl bg-dark-850 text-gray-300 text-xs font-semibold hover:text-white border border-gold-500/20"
           >
-            <span className="material-symbols-outlined text-[16px]">person</span>
-            <span>لوحة الباحث عن عمل</span>
+            <span className="material-symbols-outlined text-[16px]">visibility</span>
+            <span>معاينة سوق الوظائف المباشر</span>
           </Link>
-
           <Link
-            href="/dashboard/employer"
-            className="w-full flex items-center justify-center gap-2 py-2 rounded-xl bg-dark-850 text-gray-300 text-xs font-semibold hover:text-white border border-gold-500/20"
+            href="/"
+            className="w-full flex items-center justify-center gap-2 py-2 rounded-xl bg-dark-850 text-gray-300 text-xs font-semibold hover:text-white border border-gray-700"
           >
-            <span className="material-symbols-outlined text-[16px]">corporate_fare</span>
-            <span>لوحة الشركة والتوظيف</span>
+            <span className="material-symbols-outlined text-[16px]">home</span>
+            <span>زيارة الصفحة الرئيسية للموقع</span>
           </Link>
         </div>
       </aside>
 
-      {/* ================= MAIN METRONIC BODY ================= */}
-      <div className="flex-1 flex flex-col min-w-0">
+      {/* ================= MAIN CONTENT ================= */}
+      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
         
-        {/* Top Navbar */}
-        <header className="h-20 bg-dark-900/90 border-b border-purple-500/20 px-6 lg:px-8 flex items-center justify-between gap-4 sticky top-0 z-30 backdrop-blur-md">
-          <div className="flex items-center gap-3">
-            <span className="text-sm font-bold text-white flex items-center gap-2">
-              <span className="material-symbols-outlined text-purple-400 text-[22px]">security</span>
-              لوحة التحكم الإدارية المركزية (Super Admin Console)
+        {/* Top Header */}
+        <header className="h-20 bg-dark-900 border-b border-purple-500/20 px-6 lg:px-8 flex items-center justify-between shrink-0">
+          <div>
+            <h1 className="text-lg font-bold text-white flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+              <span>
+                {activeTab === "overview" && "مركز القيادة والتحكم الإداري الموحد"}
+                {activeTab === "users" && "إدارة حسابات المستخدمين والمستقلين والشركات"}
+                {activeTab === "jobs" && "إدارة الوظائف والمشاريع المفتوحة في السوق"}
+                {activeTab === "platforms" && "إدارة استوديو الذكاء الاصطناعي وتراخيص الأدوات"}
+                {activeTab === "cms" && "إدارة محتوى الموقع وصفحات المنظومة (CMS)"}
+                {activeTab === "escrow" && "سجل الضمان المالي وسحوبات أرباح فلسطين"}
+              </span>
+            </h1>
+            <span className="text-xs text-gray-400">
+              منصة RenderLancer المركزية • جلسة مصادقة مشفرة للـ Super Admin
             </span>
           </div>
 
           <div className="flex items-center gap-3">
             <ThemeToggle compact />
-
             <Link
               href="/admin/permissions"
               className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-md transition-colors"
             >
               <span className="material-symbols-outlined text-[16px]">tune</span>
-              <span>تعديل الصلاحيات وتجاوز المستخدمين</span>
+              <span>مصفوفة الصلاحيات</span>
             </Link>
-
             <button
               onClick={handleLogout}
               className="px-3.5 py-2 rounded-xl bg-red-500/15 text-red-300 border border-red-500/30 hover:bg-red-500/25 text-xs font-bold flex items-center gap-1 transition-colors"
@@ -315,301 +510,856 @@ export default function SuperAdminDashboardPage() {
           </div>
         </header>
 
-        {/* Dashboard Content */}
+        {/* Dynamic Tab Body */}
         <main className="flex-1 p-6 lg:p-8 space-y-8 overflow-y-auto">
           
-          {/* Executive KPIs */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            
-            <div className="p-5 rounded-2xl bg-dark-900 border border-purple-500/20 flex flex-col justify-between">
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-gray-400 font-semibold">إجمالي المستخدمين</span>
-                <span className="material-symbols-outlined text-purple-400 text-[22px]">group</span>
-              </div>
-              <div className="mt-3">
-                <span className="text-2xl font-bold text-white">+3,450</span>
-                <span className="block text-[11px] text-emerald-400 mt-1">2,800 مستقل • 650 شركة</span>
-              </div>
+          {/* Notification Toast */}
+          {cmsSaveToast && (
+            <div className="p-3.5 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs font-bold flex items-center gap-2 animate-fade-in">
+              <span className="material-symbols-outlined text-[18px]">check_circle</span>
+              <span>تم حفظ ونشر التعديلات بنجاح وتحديث الموقع فورياً!</span>
             </div>
+          )}
 
-            <div className="p-5 rounded-2xl bg-dark-900 border border-purple-500/20 flex flex-col justify-between">
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-gray-400 font-semibold">حجم السيولة في الضمان (Escrow)</span>
-                <span className="material-symbols-outlined text-emerald-400 text-[22px]">lock</span>
-              </div>
-              <div className="mt-3">
-                <span className="text-2xl font-bold font-mono text-emerald-400">$142,500.00</span>
-                <span className="block text-[11px] text-gray-400 mt-1">في 48 مشروع نشط</span>
-              </div>
-            </div>
-
-            <div className="p-5 rounded-2xl bg-dark-900 border border-purple-500/20 flex flex-col justify-between">
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-gray-400 font-semibold">طلبات سحب معلقة لفلسطين</span>
-                <span className="material-symbols-outlined text-gold-400 text-[22px]">payments</span>
-              </div>
-              <div className="mt-3">
-                <span className="text-2xl font-bold font-mono gold-gradient-text">6 طلبات</span>
-                <span className="block text-[11px] text-gold-400 mt-1">USDT وبنك فلسطين</span>
-              </div>
-            </div>
-
-            <div className="p-5 rounded-2xl bg-dark-900 border border-purple-500/20 flex flex-col justify-between">
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-gray-400 font-semibold">استهلاك أدوات الذكاء الاصطناعي</span>
-                <span className="material-symbols-outlined text-purple-400 text-[22px]">token</span>
-              </div>
-              <div className="mt-3">
-                <span className="text-2xl font-bold font-mono text-white">84,200</span>
-                <span className="block text-[11px] text-purple-300 mt-1">عملية توليد هذا الشهر</span>
-              </div>
-            </div>
-
-          </div>
-
-          {/* Section 1: Instant Activation Codes Generator (طلب استوديو الذكاء) */}
-          <div id="code-generator" className="p-6 rounded-2xl bg-dark-900 border border-gold-500/30 space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-gold-500/15">
-              <div>
-                <h3 className="text-base font-bold text-white flex items-center gap-2">
-                  <span className="material-symbols-outlined text-gold-400 text-[22px]">vpn_key</span>
-                  توليد وإصدار رموز تفعيل باقات Render Studio (Activation Engine)
-                </h3>
-                <p className="text-xs text-gray-400 mt-0.5">
-                  توليد أكواد تراخيص مسبقة الدفع لتوزيعها على الشركاء أو بيعها محلياً في غزة والضفة
-                </p>
-              </div>
-
-              <button
-                onClick={handleGenerateCode}
-                className="px-5 py-2.5 rounded-xl gold-button-gradient text-dark-950 font-bold text-xs flex items-center gap-2 shadow-lg"
-              >
-                <span className="material-symbols-outlined text-[16px]">add</span>
-                <span>توليد كود جديد الآن</span>
-              </button>
-            </div>
-
-            {generatedCode && (
-              <div className="p-4 rounded-xl bg-gold-500/10 border border-gold-500/30 flex flex-col sm:flex-row items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <span className="material-symbols-outlined text-gold-400 text-[28px]">token</span>
-                  <div>
-                    <span className="text-xs text-gray-300 block">الكود الصادر بنجاح:</span>
-                    <strong className="text-lg font-mono font-bold text-gold-400 tracking-wider">
-                      {generatedCode}
-                    </strong>
+          {/* ================= TAB 1: OVERVIEW ================= */}
+          {activeTab === "overview" && (
+            <div className="space-y-8 animate-fade-in">
+              {/* Executive KPIs */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="p-5 rounded-2xl bg-dark-900 border border-purple-500/20 flex flex-col justify-between">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-400 font-semibold">المستخدمين المسجلين</span>
+                    <span className="material-symbols-outlined text-purple-400 text-[22px]">group</span>
+                  </div>
+                  <div className="mt-3">
+                    <span className="text-2xl font-bold text-white">+{usersList.length}</span>
+                    <span className="block text-[11px] text-emerald-400 mt-1">كفاءات وشركات مسجلة</span>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] px-2.5 py-1 rounded-full bg-dark-850 text-gray-300 border border-gold-500/20">
-                    باقة شاملة • 30 يوماً
-                  </span>
-                  <button
-                    onClick={() => {
-                      navigator.clipboard.writeText(generatedCode);
-                      alert(`تم نسخ الكود ${generatedCode} للحافظة!`);
-                    }}
-                    className="px-3.5 py-1.5 rounded-lg bg-gold-500 text-dark-950 font-bold text-xs flex items-center gap-1 shadow-sm"
-                  >
-                    <span className="material-symbols-outlined text-[14px]">content_copy</span>
-                    <span>نسخ</span>
-                  </button>
+                <div className="p-5 rounded-2xl bg-dark-900 border border-purple-500/20 flex flex-col justify-between">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-400 font-semibold">حجم السيولة في الضمان (Escrow)</span>
+                    <span className="material-symbols-outlined text-emerald-400 text-[22px]">lock</span>
+                  </div>
+                  <div className="mt-3">
+                    <span className="text-2xl font-bold font-mono text-emerald-400">$142,500.00</span>
+                    <span className="block text-[11px] text-gray-400 mt-1">محمية بنظام العقود الذكية</span>
+                  </div>
+                </div>
+
+                <div className="p-5 rounded-2xl bg-dark-900 border border-purple-500/20 flex flex-col justify-between">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-400 font-semibold">الوظائف والفرص المفتوحة</span>
+                    <span className="material-symbols-outlined text-blue-400 text-[22px]">work</span>
+                  </div>
+                  <div className="mt-3">
+                    <span className="text-2xl font-bold font-mono text-white">
+                      {allPlatformJobs.length + 4}
+                    </span>
+                    <span className="block text-[11px] text-blue-300 mt-1">Super Admin والشركات</span>
+                  </div>
+                </div>
+
+                <div className="p-5 rounded-2xl bg-dark-900 border border-purple-500/20 flex flex-col justify-between">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-400 font-semibold">استهلاك أدوات الـ AI الموحدة</span>
+                    <span className="material-symbols-outlined text-gold-400 text-[22px]">token</span>
+                  </div>
+                  <div className="mt-3">
+                    <span className="text-2xl font-bold font-mono gold-gradient-text">12 أداة</span>
+                    <span className="block text-[11px] text-gold-400 mt-1">عناقيد حوسبة H100 نشطة</span>
+                  </div>
                 </div>
               </div>
-            )}
-          </div>
 
-          {/* Section 2: Financial Escrow & Payout Approvals (سحوبات فلسطين) */}
-          <div id="escrow-ledger" className="p-6 rounded-2xl bg-dark-900 border border-purple-500/20 space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-purple-500/15">
-              <div>
-                <h3 className="text-base font-bold text-white flex items-center gap-2">
-                  <span className="material-symbols-outlined text-emerald-400 text-[22px]">price_check</span>
-                  اعتماد طلبات السحب المالي للمستقلين الفلسطينيين
-                </h3>
-                <p className="text-xs text-gray-400 mt-0.5">
-                  مراجعة والتحويل عبر القنوات الآمنة (USDT Crypto، بنك فلسطين، وبايونير)
-                </p>
+              {/* Quick Navigation Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div
+                  onClick={() => setActiveTab("users")}
+                  className="p-6 rounded-2xl bg-dark-900 border border-purple-500/25 hover:border-purple-500/60 transition-all cursor-pointer space-y-3 group"
+                >
+                  <div className="w-12 h-12 rounded-xl bg-purple-500/20 text-purple-400 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <span className="material-symbols-outlined text-[26px]">manage_accounts</span>
+                  </div>
+                  <h3 className="text-base font-bold text-white group-hover:text-purple-300 transition-colors">
+                    إدارة حسابات المستخدمين
+                  </h3>
+                  <p className="text-xs text-gray-400 leading-relaxed">
+                    توثيق المستقلين، تجميد أو تفعيل الحسابات، تغيير الصلاحيات وإضافة مستخدمين جدد.
+                  </p>
+                </div>
+
+                <div
+                  onClick={() => setActiveTab("jobs")}
+                  className="p-6 rounded-2xl bg-dark-900 border border-blue-500/25 hover:border-blue-500/60 transition-all cursor-pointer space-y-3 group"
+                >
+                  <div className="w-12 h-12 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <span className="material-symbols-outlined text-[26px]">post_add</span>
+                  </div>
+                  <h3 className="text-base font-bold text-white group-hover:text-blue-300 transition-colors">
+                    إدارة ونشر الوظائف
+                  </h3>
+                  <p className="text-xs text-gray-400 leading-relaxed">
+                    نشر وظائف ومشاريع رسمية باسم Super Admin أو مراقبة وحذف وظائف الشركات المسجلة.
+                  </p>
+                </div>
+
+                <div
+                  onClick={() => setActiveTab("cms")}
+                  className="p-6 rounded-2xl bg-dark-900 border border-emerald-500/25 hover:border-emerald-500/60 transition-all cursor-pointer space-y-3 group"
+                >
+                  <div className="w-12 h-12 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <span className="material-symbols-outlined text-[26px]">edit_document</span>
+                  </div>
+                  <h3 className="text-base font-bold text-white group-hover:text-emerald-300 transition-colors">
+                    إدارة محتوى الموقع (CMS)
+                  </h3>
+                  <p className="text-xs text-gray-400 leading-relaxed">
+                    التحكم بنصوص الرئيسية وصفحة من نحن، الإحصائيات، وشريط الإعلانات وتحديثها فورياً.
+                  </p>
+                </div>
               </div>
             </div>
+          )}
 
-            <div className="overflow-x-auto">
-              <table className="w-full text-right text-xs">
-                <thead>
-                  <tr className="border-b border-purple-500/15 text-gray-400 pb-2">
-                    <th className="py-2.5 font-semibold">المستقل</th>
-                    <th className="py-2.5 font-semibold">الموقع</th>
-                    <th className="py-2.5 font-semibold">المبلغ المطلوب</th>
-                    <th className="py-2.5 font-semibold">طريقة السحب والبيانات</th>
-                    <th className="py-2.5 font-semibold">وقت الطلب</th>
-                    <th className="py-2.5 font-semibold">الحالة</th>
-                    <th className="py-2.5 font-semibold">الإجراء الإداري</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-purple-500/10">
-                  {payouts.map((item) => (
-                    <tr key={item.id}>
-                      <td className="py-3.5 font-bold text-white">{item.freelancerName}</td>
-                      <td className="py-3.5 text-gray-400">{item.location}</td>
-                      <td className="py-3.5 font-mono text-emerald-400 font-bold text-sm">
-                        {item.amount}
-                      </td>
-                      <td className="py-3.5">
-                        <span className="text-gold-400 font-bold block">{item.channel}</span>
-                        <span className="text-[10px] text-gray-500 font-mono block">
-                          {item.channelDetails}
-                        </span>
-                      </td>
-                      <td className="py-3.5 text-gray-400">{item.date}</td>
-                      <td className="py-3.5">
-                        {item.status === "approved" ? (
-                          <span className="px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-semibold">
-                            تم التحويل بنجاح ✓
-                          </span>
-                        ) : (
-                          <span className="px-2.5 py-1 rounded-full bg-gold-500/15 text-gold-300 border border-gold-500/30 text-[10px] font-semibold">
-                            بانتظار الموافقة
-                          </span>
-                        )}
-                      </td>
-                      <td className="py-3.5">
-                        {item.status === "approved" ? (
-                          <span className="text-gray-500 text-[11px]">مكتمل</span>
-                        ) : (
-                          <button
-                            onClick={() => handleApprovePayout(item.id)}
-                            className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1 shadow-sm"
-                          >
-                            <span className="material-symbols-outlined text-[14px]">check</span>
-                            <span>اعتماد والتحويل</span>
-                          </button>
-                        )}
-                      </td>
-                    </tr>
+          {/* ================= TAB 2: USERS MANAGEMENT ================= */}
+          {activeTab === "users" && (
+            <div className="space-y-6 animate-fade-in">
+              <div className="p-6 rounded-2xl bg-dark-900 border border-purple-500/30 space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-purple-500/20">
+                  <div>
+                    <h3 className="text-base font-bold text-white flex items-center gap-2">
+                      <span className="material-symbols-outlined text-purple-400 text-[22px]">manage_accounts</span>
+                      <span>سجل وإدارة حسابات المستخدمين الشامل</span>
+                    </h3>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      التحكم بحسابات المستقلين، الشركات، ومحرري المحتوى، مع إدارة التوثيق وتجميد الحسابات
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setIsAddUserModalOpen(true)}
+                      className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-md"
+                    >
+                      <span className="material-symbols-outlined text-[16px]">person_add</span>
+                      <span>+ إضافة مستخدم جديد</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Filters Bar */}
+                <div className="flex items-center gap-2 text-xs">
+                  <span className="text-gray-400 font-semibold">تصفية حسب الدور:</span>
+                  {["ALL", "JOB_SEEKER", "EMPLOYER", "SUPER_ADMIN", "CONTENT_EDITOR"].map((roleKey) => (
+                    <button
+                      key={roleKey}
+                      onClick={() => setUserRoleFilter(roleKey)}
+                      className={`px-3 py-1 rounded-lg font-bold transition-colors ${
+                        userRoleFilter === roleKey
+                          ? "bg-purple-600 text-white"
+                          : "bg-dark-850 text-gray-400 hover:text-white"
+                      }`}
+                    >
+                      {roleKey === "ALL" && "الكل"}
+                      {roleKey === "JOB_SEEKER" && "مستقلون"}
+                      {roleKey === "EMPLOYER" && "شركات"}
+                      {roleKey === "SUPER_ADMIN" && "مدراء"}
+                      {roleKey === "CONTENT_EDITOR" && "محررون"}
+                    </button>
                   ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
+                </div>
 
-          {/* Section 3: Central Jobs & Opportunities Engine (نشر وإدارة الوظائف من Super Admin والشركات) */}
-          <div id="jobs-management" className="p-6 rounded-2xl bg-dark-900 border border-blue-500/30 space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-blue-500/20">
-              <div>
-                <h3 className="text-base font-bold text-white flex items-center gap-2">
-                  <span className="material-symbols-outlined text-blue-400 text-[22px]">work</span>
-                  نشر وإدارة الوظائف والمشاريع المركزية (Job Marketplace Engine)
-                </h3>
-                <p className="text-xs text-gray-400 mt-0.5">
-                  نشر مشاريع رسمية معتمدة من إدارة Render أو إدارة وتدقيق الوظائف المنشورة من قبل الشركات المسجلة
-                </p>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <Link
-                  href="/jobs"
-                  className="px-4 py-2 rounded-xl bg-dark-850 hover:bg-dark-800 text-gold-400 border border-gold-500/20 text-xs font-semibold flex items-center gap-1.5"
-                >
-                  <span className="material-symbols-outlined text-[16px]">visibility</span>
-                  <span>معاينة سوق الوظائف</span>
-                </Link>
-                <button
-                  onClick={() => setIsAddJobOpen(true)}
-                  className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-lg shadow-blue-500/20 transition-all hover:scale-105"
-                >
-                  <span className="material-symbols-outlined text-[16px]">add_circle</span>
-                  <span>+ نشر وظيفة من Super Admin</span>
-                </button>
-              </div>
-            </div>
-
-            {allPlatformJobs.length === 0 ? (
-              <div className="p-8 rounded-2xl bg-dark-950/60 border border-blue-500/20 text-center space-y-3">
-                <span className="material-symbols-outlined text-blue-400 text-[40px]">work_outline</span>
-                <h4 className="text-sm font-bold text-white">لا توجد وظائف مخصصة مضافة بعد</h4>
-                <p className="text-xs text-gray-400 max-w-md mx-auto">
-                  الوظائف الحالية المعروضة في السوق هي وظائف البداية الافتراضية. يمكنك نشر مشاريع حقيقية جديدة الآن لتظهر فوراً في قمة السوق للمستقلين.
-                </p>
-                <button
-                  onClick={() => setIsAddJobOpen(true)}
-                  className="px-4 py-2 rounded-xl gold-button-gradient text-dark-950 font-bold text-xs inline-flex items-center gap-1.5"
-                >
-                  <span className="material-symbols-outlined text-[16px]">add</span>
-                  <span>نشر أول وظيفة رسمية الآن</span>
-                </button>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-right text-xs">
-                  <thead>
-                    <tr className="border-b border-blue-500/20 text-gray-400 pb-2">
-                      <th className="py-2.5 font-semibold">المشروع / المسمى</th>
-                      <th className="py-2.5 font-semibold">الجهة الناشرة والمصدر</th>
-                      <th className="py-2.5 font-semibold">الموقع والميزانية</th>
-                      <th className="py-2.5 font-semibold">المدة والتخصص</th>
-                      <th className="py-2.5 font-semibold">الحالة</th>
-                      <th className="py-2.5 font-semibold">الإجراءات</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-blue-500/10">
-                    {allPlatformJobs.map((job) => (
-                      <tr key={job.id}>
-                        <td className="py-3.5">
-                          <span className="font-bold text-white block">{job.title}</span>
-                          <span className="text-[10px] text-gray-400 line-clamp-1">{job.description}</span>
-                        </td>
-                        <td className="py-3.5">
-                          <span className="text-gray-200 font-semibold block">{job.company}</span>
-                          {job.postedBy === "SUPER_ADMIN" ? (
-                            <span className="inline-block mt-0.5 text-[9px] px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30 font-bold">
-                              👑 Super Admin موثق
-                            </span>
-                          ) : (
-                            <span className="inline-block mt-0.5 text-[9px] px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 font-semibold">
-                              🏢 شركة مسجلة
-                            </span>
-                          )}
-                        </td>
-                        <td className="py-3.5">
-                          <span className="text-emerald-400 font-mono font-bold block">{job.budget}</span>
-                          <span className="text-[10px] text-gray-500">{job.companyLocation}</span>
-                        </td>
-                        <td className="py-3.5 text-gray-300">
-                          <span>{job.duration}</span>
-                          <span className="text-[10px] text-gray-500 block">تصنيف: {job.category}</span>
-                        </td>
-                        <td className="py-3.5">
-                          <span className="px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-semibold">
-                            مفتوح في السوق
-                          </span>
-                        </td>
-                        <td className="py-3.5">
-                          <div className="flex items-center gap-2">
-                            <Link
-                              href="/jobs"
-                              className="px-2.5 py-1 rounded-lg bg-dark-850 hover:bg-dark-800 text-gold-400 border border-gold-500/20 text-[11px]"
-                            >
-                              عرض
-                            </Link>
-                            <button
-                              onClick={() => handleAdminDeleteJob(job.id)}
-                              className="px-2.5 py-1 rounded-lg bg-red-500/15 hover:bg-red-500/25 text-red-300 border border-red-500/30 text-[11px]"
-                            >
-                              حذف
-                            </button>
-                          </div>
-                        </td>
+                {/* Users Table */}
+                <div className="overflow-x-auto">
+                  <table className="w-full text-right text-xs">
+                    <thead>
+                      <tr className="border-b border-purple-500/20 text-gray-400 pb-2">
+                        <th className="py-2.5 font-semibold">المستخدم</th>
+                        <th className="py-2.5 font-semibold">الدور في المنصة</th>
+                        <th className="py-2.5 font-semibold">الموقع الجغرافي</th>
+                        <th className="py-2.5 font-semibold">حالة الحساب</th>
+                        <th className="py-2.5 font-semibold">التوثيق</th>
+                        <th className="py-2.5 font-semibold">الإجراءات</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody className="divide-y divide-purple-500/10">
+                      {filteredUsers.map((u) => (
+                        <tr key={u.email}>
+                          <td className="py-3.5">
+                            <div className="flex items-center gap-2.5">
+                              <div className="w-8 h-8 rounded-lg bg-dark-850 text-purple-300 border border-purple-500/30 flex items-center justify-center font-bold text-xs">
+                                {u.avatar || u.fullName.slice(0, 2)}
+                              </div>
+                              <div>
+                                <span className="font-bold text-white block">{u.fullName}</span>
+                                <span className="text-[10px] text-gray-400 font-mono">{u.email}</span>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="py-3.5">
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${ROLE_LABELS[u.role]?.badgeClass}`}>
+                              {ROLE_LABELS[u.role]?.ar || u.role}
+                            </span>
+                          </td>
+                          <td className="py-3.5 text-gray-300">{u.location || "فلسطين"}</td>
+                          <td className="py-3.5">
+                            <span
+                              className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
+                                u.status === "SUSPENDED"
+                                  ? "bg-red-500/15 text-red-300 border-red-500/30"
+                                  : "bg-emerald-500/15 text-emerald-300 border-emerald-500/30"
+                              }`}
+                            >
+                              {u.status === "SUSPENDED" ? "موقوف" : "نشط"}
+                            </span>
+                          </td>
+                          <td className="py-3.5">
+                            <button
+                              onClick={() => handleToggleUserVerification(u)}
+                              className={`px-2 py-0.5 rounded-md text-[10px] font-bold border flex items-center gap-1 ${
+                                u.verified
+                                  ? "bg-gold-500/15 text-gold-300 border-gold-500/30"
+                                  : "bg-dark-850 text-gray-500 border-gray-700 hover:text-white"
+                              }`}
+                            >
+                              <span className="material-symbols-outlined text-[13px]">
+                                {u.verified ? "verified" : "check"}
+                              </span>
+                              <span>{u.verified ? "موثق رسمياً" : "غير موثق"}</span>
+                            </button>
+                          </td>
+                          <td className="py-3.5">
+                            <div className="flex items-center gap-1.5">
+                              <button
+                                onClick={() => handleToggleUserStatus(u)}
+                                className={`px-2 py-1 rounded-lg text-[10px] font-bold ${
+                                  u.status === "SUSPENDED"
+                                    ? "bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30"
+                                    : "bg-amber-500/15 text-amber-300 hover:bg-amber-500/25"
+                                }`}
+                              >
+                                {u.status === "SUSPENDED" ? "تفعيل" : "إيقاف"}
+                              </button>
+                              <select
+                                value={u.role}
+                                onChange={(e) => handleRoleChange(u.email, e.target.value as AuthRole)}
+                                className="px-1.5 py-1 rounded-lg bg-dark-950 border border-purple-500/30 text-[10px] text-gray-300"
+                              >
+                                <option value="JOB_SEEKER">مستقل</option>
+                                <option value="EMPLOYER">شركة</option>
+                                <option value="CONTENT_EDITOR">محرر</option>
+                                <option value="SUPER_ADMIN">مدير</option>
+                              </select>
+                              <button
+                                onClick={() => handleDeleteUser(u.email)}
+                                className="p-1 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400"
+                                title="حذف المستخدم"
+                              >
+                                <span className="material-symbols-outlined text-[15px]">delete</span>
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
-            )}
-          </div>
+            </div>
+          )}
+
+          {/* ================= TAB 3: JOBS MANAGEMENT ================= */}
+          {activeTab === "jobs" && (
+            <div className="space-y-6 animate-fade-in">
+              <div className="p-6 rounded-2xl bg-dark-900 border border-blue-500/30 space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-blue-500/20">
+                  <div>
+                    <h3 className="text-base font-bold text-white flex items-center gap-2">
+                      <span className="material-symbols-outlined text-blue-400 text-[22px]">work</span>
+                      <span>إدارة ونشر الوظائف والفرص (Job Marketplace Engine)</span>
+                    </h3>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      نشر مشاريع رسمية معتمدة من إدارة Render ومراجعة وإدارة الوظائف المنشورة من قبل الشركات
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <Link
+                      href="/jobs"
+                      className="px-4 py-2 rounded-xl bg-dark-850 hover:bg-dark-800 text-gold-400 border border-gold-500/20 text-xs font-semibold flex items-center gap-1.5"
+                    >
+                      <span className="material-symbols-outlined text-[16px]">visibility</span>
+                      <span>سوق الوظائف الحي</span>
+                    </Link>
+                    <button
+                      onClick={() => setIsAddJobOpen(true)}
+                      className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-lg shadow-blue-500/20 transition-all hover:scale-105"
+                    >
+                      <span className="material-symbols-outlined text-[16px]">add_circle</span>
+                      <span>+ نشر وظيفة من Super Admin</span>
+                    </button>
+                  </div>
+                </div>
+
+                {allPlatformJobs.length === 0 ? (
+                  <div className="p-8 rounded-2xl bg-dark-950/60 border border-blue-500/20 text-center space-y-3">
+                    <span className="material-symbols-outlined text-blue-400 text-[40px]">work_outline</span>
+                    <h4 className="text-sm font-bold text-white">لا توجد وظائف مخصصة مضافة بعد</h4>
+                    <p className="text-xs text-gray-400 max-w-md mx-auto">
+                      انقر على زر النشر أعلاه لإضافة مشاريع معتمدة تظهر فوراً في قمة سوق العمل.
+                    </p>
+                    <button
+                      onClick={() => setIsAddJobOpen(true)}
+                      className="px-4 py-2 rounded-xl gold-button-gradient text-dark-950 font-bold text-xs inline-flex items-center gap-1.5"
+                    >
+                      <span className="material-symbols-outlined text-[16px]">add</span>
+                      <span>نشر أول وظيفة رسمية</span>
+                    </button>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-right text-xs">
+                      <thead>
+                        <tr className="border-b border-blue-500/20 text-gray-400 pb-2">
+                          <th className="py-2.5 font-semibold">المشروع / المسمى</th>
+                          <th className="py-2.5 font-semibold">الجهة الناشرة</th>
+                          <th className="py-2.5 font-semibold">الموقع والميزانية</th>
+                          <th className="py-2.5 font-semibold">المدة والتخصص</th>
+                          <th className="py-2.5 font-semibold">الحالة</th>
+                          <th className="py-2.5 font-semibold">الإجراءات</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-blue-500/10">
+                        {allPlatformJobs.map((job) => (
+                          <tr key={job.id}>
+                            <td className="py-3.5">
+                              <span className="font-bold text-white block">{job.title}</span>
+                              <span className="text-[10px] text-gray-400 line-clamp-1">{job.description}</span>
+                            </td>
+                            <td className="py-3.5">
+                              <span className="text-gray-200 font-semibold block">{job.company}</span>
+                              {job.postedBy === "SUPER_ADMIN" ? (
+                                <span className="inline-block mt-0.5 text-[9px] px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30 font-bold">
+                                  👑 Super Admin موثق
+                                </span>
+                              ) : (
+                                <span className="inline-block mt-0.5 text-[9px] px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 font-semibold">
+                                  🏢 شركة مسجلة
+                                </span>
+                              )}
+                            </td>
+                            <td className="py-3.5">
+                              <span className="text-emerald-400 font-mono font-bold block">{job.budget}</span>
+                              <span className="text-[10px] text-gray-500">{job.companyLocation}</span>
+                            </td>
+                            <td className="py-3.5 text-gray-300">
+                              <span>{job.duration}</span>
+                              <span className="text-[10px] text-gray-500 block">تصنيف: {job.category}</span>
+                            </td>
+                            <td className="py-3.5">
+                              <span className="px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-semibold">
+                                مفتوح في السوق
+                              </span>
+                            </td>
+                            <td className="py-3.5">
+                              <div className="flex items-center gap-2">
+                                <Link
+                                  href="/jobs"
+                                  className="px-2.5 py-1 rounded-lg bg-dark-850 hover:bg-dark-800 text-gold-400 border border-gold-500/20 text-[11px]"
+                                >
+                                  عرض
+                                </Link>
+                                <button
+                                  onClick={() => handleAdminDeleteJob(job.id)}
+                                  className="px-2.5 py-1 rounded-lg bg-red-500/15 hover:bg-red-500/25 text-red-300 border border-red-500/30 text-[11px]"
+                                >
+                                  حذف
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* ================= TAB 4: PLATFORMS & AI STUDIO ================= */}
+          {activeTab === "platforms" && (
+            <div className="space-y-6 animate-fade-in">
+              {/* Activation Code Generator */}
+              <div id="code-generator" className="p-6 rounded-2xl bg-dark-900 border border-gold-500/30 space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-gold-500/15">
+                  <div>
+                    <h3 className="text-base font-bold text-white flex items-center gap-2">
+                      <span className="material-symbols-outlined text-gold-400 text-[22px]">vpn_key</span>
+                      توليد وإصدار رموز تفعيل باقات Render Studio (Activation Engine)
+                    </h3>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      توليد أكواد تراخيص مسبقة الدفع لتوزيعها على الشركاء أو بيعها محلياً في غزة والضفة
+                    </p>
+                  </div>
+
+                  <button
+                    onClick={handleGenerateCode}
+                    className="px-5 py-2.5 rounded-xl gold-button-gradient text-dark-950 font-bold text-xs flex items-center gap-2 shadow-lg"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">add</span>
+                    <span>توليد كود جديد الآن</span>
+                  </button>
+                </div>
+
+                {generatedCode && (
+                  <div className="p-4 rounded-xl bg-gold-500/10 border border-gold-500/30 flex flex-col sm:flex-row items-center justify-between gap-4 animate-fade-in">
+                    <div className="flex items-center gap-3">
+                      <span className="material-symbols-outlined text-gold-400 text-[28px]">token</span>
+                      <div>
+                        <span className="text-xs text-gray-300 block">الكود الصادر بنجاح:</span>
+                        <strong className="text-lg font-mono font-bold text-gold-400 tracking-wider">
+                          {generatedCode}
+                        </strong>
+                        <span className="text-[10px] text-gray-400 block mt-0.5">
+                          صالح لمدة 30 يوماً ويمنح وصولاً شاملاً لكافة الأدوات الـ 12
+                        </span>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(generatedCode);
+                        alert(`تم نسخ الكود (${generatedCode}) بنجاح!`);
+                      }}
+                      className="px-4 py-2 rounded-lg bg-dark-900 hover:bg-dark-850 text-gold-300 border border-gold-500/30 text-xs font-bold"
+                    >
+                      نسخ الكود
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Tools Catalog Table */}
+              <div className="p-6 rounded-2xl bg-dark-900 border border-gold-500/20 space-y-4">
+                <h3 className="text-base font-bold text-white flex items-center gap-2 border-b border-gold-500/15 pb-3">
+                  <span className="material-symbols-outlined text-gold-400 text-[20px]">hub</span>
+                  <span>حالة وإدارة أدوات استوديو الذكاء الـ 12</span>
+                </h3>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {toolsList.map((tool) => (
+                    <div key={tool.id} className="p-4 rounded-2xl bg-dark-950 border border-gold-500/20 flex flex-col justify-between gap-3">
+                      <div>
+                        <div className="flex items-center justify-between">
+                          <h4 className="text-sm font-bold text-white">{tool.name}</h4>
+                          <span
+                            className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                              tool.status === "ACTIVE"
+                                ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/30"
+                                : "bg-amber-500/15 text-amber-300 border-amber-500/30"
+                            }`}
+                          >
+                            {tool.status === "ACTIVE" ? "نشط سحابياً" : "تحت الصيانة"}
+                          </span>
+                        </div>
+                        <span className="text-xs text-gray-400 block mt-1">{tool.category}</span>
+                      </div>
+
+                      <div className="pt-2 border-t border-gold-500/10 flex items-center justify-between text-xs">
+                        <span className="text-gray-400 text-[11px]">الاستهلاك: <strong className="text-white font-mono">{tool.requests}</strong></span>
+                        <button
+                          onClick={() => handleToggleToolStatus(tool.id)}
+                          className="px-2.5 py-1 rounded-lg bg-dark-850 hover:bg-dark-800 text-gold-400 text-[11px] font-semibold border border-gold-500/20"
+                        >
+                          تبديل الحالة
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ================= TAB 5: CMS SITE CONTENT MANAGEMENT ================= */}
+          {activeTab === "cms" && (
+            <div className="space-y-6 animate-fade-in">
+              <form onSubmit={handleSaveCms} className="p-6 rounded-2xl bg-dark-900 border border-emerald-500/30 space-y-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-emerald-500/20">
+                  <div>
+                    <h3 className="text-base font-bold text-white flex items-center gap-2">
+                      <span className="material-symbols-outlined text-emerald-400 text-[22px]">edit_note</span>
+                      <span>إدارة وتعديل محتوى صفحات الموقع (CMS Engine)</span>
+                    </h3>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      تعديل نصوص الصفحة الرئيسية، صفحة من نحن، الإحصائيات، ومعلومات التواصل وتحديثها في الموقع لحظياً
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={handleResetCms}
+                      className="px-4 py-2 rounded-xl bg-dark-850 hover:bg-dark-800 text-gray-300 text-xs font-semibold"
+                    >
+                      استعادة الافتراضي
+                    </button>
+                    <button
+                      type="submit"
+                      className="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-lg shadow-emerald-500/20"
+                    >
+                      <span className="material-symbols-outlined text-[16px]">save</span>
+                      <span>حفظ ونشر التعديلات فوراً</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Section 1: Homepage Hero */}
+                <div className="space-y-4">
+                  <h4 className="text-sm font-bold text-gold-400 border-b border-gold-500/15 pb-1">
+                    1. نصوص الصفحة الرئيسية (Hero Section)
+                  </h4>
+
+                  <div>
+                    <label className="block text-xs font-bold text-white mb-1">
+                      نص الشارة العلوية (Hero Badge)
+                    </label>
+                    <input
+                      type="text"
+                      value={cmsForm.heroBadge}
+                      onChange={(e) => setCmsForm({ ...cmsForm, heroBadge: e.target.value })}
+                      className="w-full px-3 py-2 rounded-xl bg-dark-950 border border-emerald-500/30 text-xs text-white focus:outline-none focus:border-emerald-400"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-white mb-1">
+                        العنوان الرئيسي (Hero Title)
+                      </label>
+                      <input
+                        type="text"
+                        value={cmsForm.heroTitle}
+                        onChange={(e) => setCmsForm({ ...cmsForm, heroTitle: e.target.value })}
+                        className="w-full px-3 py-2 rounded-xl bg-dark-950 border border-emerald-500/30 text-xs text-white focus:outline-none focus:border-emerald-400 font-bold"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-white mb-1">
+                        الكلمة المميزة باللون الذهبي (Golden Highlight)
+                      </label>
+                      <input
+                        type="text"
+                        value={cmsForm.heroHighlight}
+                        onChange={(e) => setCmsForm({ ...cmsForm, heroHighlight: e.target.value })}
+                        className="w-full px-3 py-2 rounded-xl bg-dark-950 border border-emerald-500/30 text-xs text-gold-400 focus:outline-none focus:border-emerald-400 font-bold"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-white mb-1">
+                      الوصف الترحيبي (Hero Subtitle)
+                    </label>
+                    <textarea
+                      rows={3}
+                      value={cmsForm.heroDescription}
+                      onChange={(e) => setCmsForm({ ...cmsForm, heroDescription: e.target.value })}
+                      className="w-full px-3 py-2 rounded-xl bg-dark-950 border border-emerald-500/30 text-xs text-gray-200 focus:outline-none focus:border-emerald-400 leading-relaxed"
+                    />
+                  </div>
+                </div>
+
+                {/* Section 2: About Us */}
+                <div className="space-y-4 pt-4 border-t border-emerald-500/15">
+                  <h4 className="text-sm font-bold text-gold-400 border-b border-gold-500/15 pb-1">
+                    2. محتوى صفحة من نحن (About Us)
+                  </h4>
+
+                  <div>
+                    <label className="block text-xs font-bold text-white mb-1">
+                      قصة وهوية Render Group
+                    </label>
+                    <textarea
+                      rows={4}
+                      value={cmsForm.aboutStory}
+                      onChange={(e) => setCmsForm({ ...cmsForm, aboutStory: e.target.value })}
+                      className="w-full px-3 py-2 rounded-xl bg-dark-950 border border-emerald-500/30 text-xs text-gray-200 focus:outline-none focus:border-emerald-400 leading-relaxed"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-white mb-1">
+                      الرؤية والرسالة الاستراتيجية
+                    </label>
+                    <textarea
+                      rows={3}
+                      value={cmsForm.aboutVision}
+                      onChange={(e) => setCmsForm({ ...cmsForm, aboutVision: e.target.value })}
+                      className="w-full px-3 py-2 rounded-xl bg-dark-950 border border-emerald-500/30 text-xs text-gray-200 focus:outline-none focus:border-emerald-400 leading-relaxed"
+                    />
+                  </div>
+                </div>
+
+                {/* Section 3: Statistics & Contact */}
+                <div className="space-y-4 pt-4 border-t border-emerald-500/15">
+                  <h4 className="text-sm font-bold text-gold-400 border-b border-gold-500/15 pb-1">
+                    3. أرقام وإحصائيات المنظومة ومعلومات الاتصال
+                  </h4>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-white mb-1">إجمالي المستقلين</label>
+                      <input
+                        type="text"
+                        value={cmsForm.statTalents}
+                        onChange={(e) => setCmsForm({ ...cmsForm, statTalents: e.target.value })}
+                        className="w-full px-3 py-2 rounded-xl bg-dark-950 border border-emerald-500/30 text-xs text-white font-mono"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-white mb-1">حجم المعاملات ($)</label>
+                      <input
+                        type="text"
+                        value={cmsForm.statVolume}
+                        onChange={(e) => setCmsForm({ ...cmsForm, statVolume: e.target.value })}
+                        className="w-full px-3 py-2 rounded-xl bg-dark-950 border border-emerald-500/30 text-xs text-emerald-400 font-mono"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-white mb-1">نسبة الرضا</label>
+                      <input
+                        type="text"
+                        value={cmsForm.statSatisfaction}
+                        onChange={(e) => setCmsForm({ ...cmsForm, statSatisfaction: e.target.value })}
+                        className="w-full px-3 py-2 rounded-xl bg-dark-950 border border-emerald-500/30 text-xs text-gold-400 font-mono"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-white mb-1">البريد الإلكتروني الرسمي</label>
+                      <input
+                        type="text"
+                        value={cmsForm.contactEmail}
+                        onChange={(e) => setCmsForm({ ...cmsForm, contactEmail: e.target.value })}
+                        className="w-full px-3 py-2 rounded-xl bg-dark-950 border border-emerald-500/30 text-xs text-white font-mono"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-white mb-1">رقم الهاتف / الدعم</label>
+                      <input
+                        type="text"
+                        value={cmsForm.contactPhone}
+                        onChange={(e) => setCmsForm({ ...cmsForm, contactPhone: e.target.value })}
+                        className="w-full px-3 py-2 rounded-xl bg-dark-950 border border-emerald-500/30 text-xs text-white font-mono"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-4 border-t border-emerald-500/15 flex items-center justify-end gap-3">
+                  <button
+                    type="submit"
+                    className="px-8 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-emerald-500/25"
+                  >
+                    <span className="material-symbols-outlined text-[18px]">publish</span>
+                    <span>نشر المحتوى وتحديث الموقع الحي فوراً</span>
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
+
+          {/* ================= TAB 6: ESCROW & PAYOUTS ================= */}
+          {activeTab === "escrow" && (
+            <div className="space-y-6 animate-fade-in">
+              <div id="escrow-ledger" className="p-6 rounded-2xl bg-dark-900 border border-emerald-500/30 space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-emerald-500/15">
+                  <div>
+                    <h3 className="text-base font-bold text-white flex items-center gap-2">
+                      <span className="material-symbols-outlined text-emerald-400 text-[22px]">account_balance</span>
+                      <span>سجل الضمان المالي وطلبات سحب الأرباح (Palestine Payouts Rails)</span>
+                    </h3>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      اعتماد وتحويل مستحقات المستقلين في غزة والضفة عبر قنوات USDT TRC20 وبنك فلسطين
+                    </p>
+                  </div>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-right text-xs">
+                    <thead>
+                      <tr className="border-b border-emerald-500/20 text-gray-400 pb-2">
+                        <th className="py-2.5 font-semibold">المستقل</th>
+                        <th className="py-2.5 font-semibold">الموقع</th>
+                        <th className="py-2.5 font-semibold">المبلغ المطلوب</th>
+                        <th className="py-2.5 font-semibold">قناة التحويل والتفاصيل</th>
+                        <th className="py-2.5 font-semibold">تاريخ الطلب</th>
+                        <th className="py-2.5 font-semibold">الحالة</th>
+                        <th className="py-2.5 font-semibold">إجراء الاعتماد</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-emerald-500/10">
+                      {payouts.map((item) => (
+                        <tr key={item.id}>
+                          <td className="py-3.5 font-bold text-white">{item.freelancerName}</td>
+                          <td className="py-3.5 text-gray-400">{item.location}</td>
+                          <td className="py-3.5 font-mono text-emerald-400 font-bold text-sm">
+                            {item.amount}
+                          </td>
+                          <td className="py-3.5">
+                            <span className="text-gold-400 font-bold block">{item.channel}</span>
+                            <span className="text-[10px] text-gray-500 font-mono block">
+                              {item.channelDetails}
+                            </span>
+                          </td>
+                          <td className="py-3.5 text-gray-400">{item.date}</td>
+                          <td className="py-3.5">
+                            {item.status === "approved" ? (
+                              <span className="px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-semibold">
+                                تم التحويل بنجاح ✓
+                              </span>
+                            ) : (
+                              <span className="px-2.5 py-1 rounded-full bg-gold-500/15 text-gold-300 border border-gold-500/30 text-[10px] font-semibold">
+                                بانتظار الموافقة
+                              </span>
+                            )}
+                          </td>
+                          <td className="py-3.5">
+                            {item.status === "approved" ? (
+                              <span className="text-gray-500 text-[11px]">مكتمل</span>
+                            ) : (
+                              <button
+                                onClick={() => handleApprovePayout(item.id)}
+                                className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1 shadow-sm"
+                              >
+                                <span className="material-symbols-outlined text-[14px]">check</span>
+                                <span>اعتماد والتحويل</span>
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
 
         </main>
       </div>
+
+      {/* ================= MODAL: ADD NEW USER BY ADMIN ================= */}
+      {isAddUserModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
+          <div className="relative w-full max-w-md rounded-3xl glass-card p-6 md:p-8 border border-purple-500/40 shadow-2xl space-y-5">
+            <button
+              onClick={() => setIsAddUserModalOpen(false)}
+              className="absolute top-5 left-5 text-gray-400 hover:text-white"
+            >
+              <span className="material-symbols-outlined text-[24px]">close</span>
+            </button>
+
+            <div>
+              <h3 className="text-lg font-bold text-white">إضافة مستخدم جديد للنظام</h3>
+              <p className="text-xs text-gray-400">إنشاء حساب معتمد بصلاحيات محددة مباشرة من الإدارة</p>
+            </div>
+
+            <form onSubmit={handleCreateNewUser} className="space-y-3">
+              <div>
+                <label className="block text-xs font-bold text-white mb-1">الاسم الكامل</label>
+                <input
+                  type="text"
+                  required
+                  value={newUserName}
+                  onChange={(e) => setNewUserName(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl bg-dark-900 border border-purple-500/30 text-xs text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-white mb-1">البريد الإلكتروني</label>
+                <input
+                  type="email"
+                  required
+                  value={newUserEmail}
+                  onChange={(e) => setNewUserEmail(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl bg-dark-900 border border-purple-500/30 text-xs text-white font-mono"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-white mb-1">كلمة المرور</label>
+                  <input
+                    type="password"
+                    required
+                    value={newUserPassword}
+                    onChange={(e) => setNewUserPassword(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl bg-dark-900 border border-purple-500/30 text-xs text-white font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-white mb-1">الدور الوظيفي</label>
+                  <select
+                    value={newUserRole}
+                    onChange={(e) => setNewUserRole(e.target.value as AuthRole)}
+                    className="w-full px-3 py-2 rounded-xl bg-dark-900 border border-purple-500/30 text-xs text-white"
+                  >
+                    <option value="JOB_SEEKER">باحث عن عمل / مستقل</option>
+                    <option value="EMPLOYER">صاحب عمل / شركة</option>
+                    <option value="CONTENT_EDITOR">محرر محتوى</option>
+                    <option value="SUPER_ADMIN">مدير نظام (Admin)</option>
+                  </select>
+                </div>
+              </div>
+
+              {newUserRole === "EMPLOYER" && (
+                <div>
+                  <label className="block text-xs font-bold text-white mb-1">اسم الشركة أو المؤسسة</label>
+                  <input
+                    type="text"
+                    value={newUserCompanyName}
+                    onChange={(e) => setNewUserCompanyName(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl bg-dark-900 border border-purple-500/30 text-xs text-white"
+                  />
+                </div>
+              )}
+
+              <div>
+                <label className="block text-xs font-bold text-white mb-1">الموقع الجغرافي</label>
+                <input
+                  type="text"
+                  value={newUserLocation}
+                  onChange={(e) => setNewUserLocation(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl bg-dark-900 border border-purple-500/30 text-xs text-white"
+                />
+              </div>
+
+              <div className="pt-2 flex items-center justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsAddUserModalOpen(false)}
+                  className="px-4 py-2 rounded-xl bg-dark-850 text-gray-300 text-xs font-semibold"
+                >
+                  إلغاء
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs shadow-lg"
+                >
+                  إنشاء الحساب
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* ================= MODAL: SUPER ADMIN POST JOB ================= */}
       {isAddJobOpen && (

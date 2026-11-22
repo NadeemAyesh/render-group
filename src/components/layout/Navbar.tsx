@@ -41,22 +41,19 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenActivation }) => {
 
   return (
     <>
-      {/* Top Ticker with Countdown */}
+      {/* Top Corporate Status Bar */}
       <div className="bg-dark-900 border-b border-gold-500/20 py-2 px-6 text-xs text-gray-300">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <span className="flex h-2 w-2 relative">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-gold-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-gold-500"></span>
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
             </span>
             <span className="text-gold-400 font-semibold">
-              {currentUser ? `مرحباً بك، ${currentUser.fullName}:` : "حسابك التجريبي نشط:"}
+              {currentUser ? `الحساب المعتمد: ${currentUser.fullName}` : "منظومة RenderLancer الرسمية الموحدة:"}
             </span>
-            <span>
-              الفترة التجريبية الشاملة لكافة الأدوات الـ 12 تنتهي خلال:{" "}
-              <strong className="text-white font-mono bg-dark-800 px-2 py-0.5 rounded border border-gold-500/30">
-                23 ساعة و 51 دقيقة
-              </strong>
+            <span className="text-gray-300">
+              بوابة تمكين الكفاءات الفلسطينية والعمل الحر • ترسانة أدوات Render Group للذكاء الاصطناعي
             </span>
           </div>
           <div className="flex items-center gap-3">
@@ -65,11 +62,11 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenActivation }) => {
               className="text-gold-400 hover:text-white underline font-bold flex items-center gap-1"
             >
               <span className="material-symbols-outlined text-[14px]">key</span>
-              أدخل رمز التفعيل
+              إدارة تراخيص الاستوديو
             </button>
             <span className="text-gray-600">|</span>
             <span className="text-gray-400">
-              رصيد محفظة العمل الحر:{" "}
+              المحفظة الرقمية:{" "}
               <strong className="text-emerald-400 font-mono">$120.00</strong>
             </span>
           </div>

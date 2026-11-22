@@ -22,7 +22,7 @@ const TOOLS_DATA: ToolItem[] = [
     categoryLabel: "توليد الصور",
     icon: "image_search",
     description: "توليد وتحويل الصور باستخدام GPT Image 2 مع دعم الصور المرجعية المتعددة لإنشاء شخصيات وهوية بصرية ثابتة.",
-    statusBadge: "فترة تجريبية مفعلة",
+    statusBadge: "وصول سحابي نشط",
     statusColor: "emerald",
     actionText: "فتح الأداة",
   },
@@ -44,7 +44,7 @@ const TOOLS_DATA: ToolItem[] = [
     categoryLabel: "تجربة حصرية",
     icon: "apparel",
     description: "جرّب الملابس افتراضياً على صورتك الشخصية بدقة متناهية ومطابقة لأبعاد الجسم باستخدام أحدث تقنيات الـ AI.",
-    statusBadge: "فترة تجريبية",
+    statusBadge: "أداة معتمدة",
     statusColor: "gold",
     actionText: "تجربة الأداة",
   },
@@ -55,7 +55,7 @@ const TOOLS_DATA: ToolItem[] = [
     categoryLabel: "سينما وسينماتيك",
     icon: "videocam",
     description: "تحويل الصور والنصوص إلى فيديو سينمائي مذهل فائق الواقعية باستخدام تقنية Veo 3.1 الأكثر تطوراً عالمياً.",
-    statusBadge: "نشط (تجريبي)",
+    statusBadge: "نشط في الباقة",
     statusColor: "emerald",
     actionText: "توليد فيديو",
   },
@@ -175,7 +175,7 @@ export const StudioToolsGrid: React.FC<StudioToolsGridProps> = ({ onOpenActivati
             أدواتنا <span className="gold-gradient-text">الاحترافية</span>
           </h2>
           <p className="text-gray-400 text-sm mt-1">
-            اختر الأداة المناسبة لمشروعك الإبداعي القادم، أو تحكم باشتراكاتك وفترتك التجريبية
+            اختر الأداة المناسبة لمشروعك الإبداعي القادم، أو أدر اشتراكاتك وتراخيص الاستوديو المعتمدة
           </p>
         </div>
 

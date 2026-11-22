@@ -61,23 +61,8 @@ export default function LoginPage() {
       }
 
       setIsLoading(false);
-      setError("البريد الإلكتروني أو كلمة المرور غير صحيحة. يمكنك تجربة الحسابات التجريبية بالأسفل.");
+      setError("البريد الإلكتروني أو كلمة المرور غير صحيحة. يرجى التحقق من صحة البيانات والمحاولة مجدداً.");
     }, 500);
-  };
-
-  const handleDirectDemoLogin = (demoEmail: string) => {
-    const acc = DEMO_ACCOUNTS[demoEmail];
-    if (acc) {
-      setEmail(acc.user.email);
-      setPassword(acc.password);
-      setError(null);
-      setIsLoading(true);
-
-      setTimeout(() => {
-        setActiveSession(acc.user);
-        router.push(acc.redirectUrl);
-      }, 400);
-    }
   };
 
   return (
@@ -192,46 +177,8 @@ export default function LoginPage() {
             </button>
           </form>
 
-          {/* Demo Accounts Quick-Login Section */}
-          <div className="pt-4 border-t border-gold-500/15 space-y-2">
-            <span className="block text-[10px] text-gray-400 font-semibold text-center uppercase tracking-wider">
-              دخول تجريبي سريع بنقرة واحدة (بدون كتابة):
-            </span>
-            <div className="grid grid-cols-3 gap-2">
-              <button
-                type="button"
-                onClick={() => handleDirectDemoLogin("talent@render.ps")}
-                className="p-2.5 rounded-xl bg-dark-900 hover:bg-dark-850 border border-gold-500/25 text-[10px] text-gold-300 font-bold flex flex-col items-center gap-1 transition-all hover:scale-105 active:scale-95"
-              >
-                <span className="material-symbols-outlined text-[18px] text-gold-400">person</span>
-                <span>باحث عن عمل</span>
-                <span className="text-[8px] text-gray-500 font-normal">دخول فوري</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleDirectDemoLogin("employer@render.ps")}
-                className="p-2.5 rounded-xl bg-dark-900 hover:bg-dark-850 border border-blue-500/30 text-[10px] text-blue-300 font-bold flex flex-col items-center gap-1 transition-all hover:scale-105 active:scale-95"
-              >
-                <span className="material-symbols-outlined text-[18px] text-blue-400">corporate_fare</span>
-                <span>شركة / توظيف</span>
-                <span className="text-[8px] text-gray-500 font-normal">دخول فوري</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleDirectDemoLogin("admin@render.ps")}
-                className="p-2.5 rounded-xl bg-purple-500/15 hover:bg-purple-500/25 border border-purple-500/30 text-[10px] text-purple-300 font-bold flex flex-col items-center gap-1 transition-all hover:scale-105 active:scale-95"
-              >
-                <span className="material-symbols-outlined text-[18px] text-purple-400">shield</span>
-                <span>Super Admin</span>
-                <span className="text-[8px] text-purple-300 font-normal">دخول فوري</span>
-              </button>
-            </div>
-          </div>
-
           {/* Register Link */}
-          <div className="text-center text-xs text-gray-400 pt-2">
+          <div className="text-center text-xs text-gray-400 pt-4 border-t border-gold-500/15">
             <span>ليس لديك حساب بعد؟ </span>
             <Link href="/register" className="text-gold-400 hover:underline font-bold">
               إنشاء حساب جديد مجاناً

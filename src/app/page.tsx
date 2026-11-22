@@ -1,15 +1,27 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { StudioToolsGrid } from "@/components/studio/StudioToolsGrid";
 import { ActivationModal } from "@/components/studio/ActivationModal";
 import { CvShowcase } from "@/components/cv/CvShowcase";
+import { getSiteContent, SiteContent, DEFAULT_SITE_CONTENT } from "@/lib/cms-service";
 
 export default function HomePage() {
   const [isActivationOpen, setIsActivationOpen] = useState(false);
+  const [cms, setCms] = useState<SiteContent>(DEFAULT_SITE_CONTENT);
+
+  useEffect(() => {
+    setCms(getSiteContent());
+    const handleCmsChange = (e: Event) => {
+      const customEvent = e as CustomEvent<SiteContent>;
+      setCms(customEvent.detail || getSiteContent());
+    };
+    window.addEventListener("renderlancer_cms_change", handleCmsChange);
+    return () => window.removeEventListener("renderlancer_cms_change", handleCmsChange);
+  }, []);
 
   return (
     <div className="min-h-screen bg-dark-950 text-gray-100 selection:bg-gold-500 selection:text-dark-950 font-sans">
@@ -26,17 +38,16 @@ export default function HomePage() {
             <div className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-dark-850/90 border border-gold-500/30 backdrop-blur-md mb-8 shadow-xl">
               <span className="material-symbols-outlined text-gold-400 text-[18px]">verified</span>
               <span className="text-xs font-semibold text-gold-300 tracking-wide">
-                منظومة Render Group الموحدة: العمل الحر + استوديو الذكاء الاصطناعي الشامل
+                {cms.heroBadge}
               </span>
             </div>
 
             <h1 className="text-4xl md:text-6xl font-bold leading-tight md:leading-[1.2] text-white">
-              RENDER GROUP <span className="gold-gradient-text">STUDIO & FREELANCE</span>
+              {cms.heroTitle} <span className="gold-gradient-text">{cms.heroHighlight}</span>
             </h1>
 
             <p className="mt-6 text-base md:text-lg text-gray-300 max-w-3xl leading-relaxed">
-              منصتك الشاملة للإبداع الرقمي والعمل الحر. نصنع المستقبل بتمكين الكفاءات الفلسطينية بأدوات الذكاء
-              الاصطناعي الأكثر تطوراً في العالم، مع إدارة اشتراكاتك وربط مواهب الوطن بالشركات العالمية في مكان واحد.
+              {cms.heroDescription}
             </p>
 
             {/* Quick Action Buttons including "مشاريع منجزة من ريندر" */}

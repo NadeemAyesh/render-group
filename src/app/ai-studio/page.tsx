@@ -428,8 +428,8 @@ export default function AIStudioCatalogPage() {
                   <span className="material-symbols-outlined text-[16px]">terminal</span>
                   <span>منصة التجربة الحية الفورية (Live AI Sandbox)</span>
                 </label>
-                <span className="text-[10px] text-emerald-400 font-semibold bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
-                  فترة تجريبية مجانية
+                <span className="text-[10px] text-emerald-400 font-semibold bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20">
+                  وصول سحابي مباشر (Enterprise Tier)
                 </span>
               </div>
 
