@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
   AuthUser,
@@ -110,23 +111,27 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenActivation }) => {
       <div className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between gap-6">
         
         {/* Logo & Brand */}
-        <div className="flex items-center gap-2.5 flex-shrink-0">
-          <Link href="/" className="group flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl gold-button-gradient flex items-center justify-center text-dark-950 font-bold shadow-md shadow-gold-500/25 group-hover:scale-105 transition-transform flex-shrink-0">
-              <span className="material-symbols-outlined text-[22px]">all_inclusive</span>
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-lg font-black tracking-tight text-slate-900 dark:text-white whitespace-nowrap">
-                  Render<span className="gold-gradient-text">Lancer</span>
-                </span>
-                <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-gold-500/15 text-amber-900 dark:text-gold-300 border border-gold-500/35 font-bold shadow-xs whitespace-nowrap">
-                  Studio Ecosystem
-                </span>
-              </div>
-              <span className="hidden 2xl:block text-[10px] text-slate-500 dark:text-gray-400 font-medium -mt-0.5 whitespace-nowrap">
-                منصة العمل الحر وترسانة أدوات الذكاء الاصطناعي الموحدة
-              </span>
+        <div className="flex items-center gap-3 flex-shrink-0">
+          <Link href="/" className="group flex items-center">
+            <div className="relative h-11 w-auto flex items-center">
+              {/* Light mode logo */}
+              <Image
+                src="/logo.png"
+                alt="Render Connect"
+                width={180}
+                height={48}
+                className="h-11 w-auto object-contain dark:hidden group-hover:scale-105 transition-transform"
+                priority
+              />
+              {/* Dark mode logo */}
+              <Image
+                src="/logo-dark.png"
+                alt="Render Connect"
+                width={180}
+                height={48}
+                className="h-11 w-auto object-contain hidden dark:block group-hover:scale-105 transition-transform"
+                priority
+              />
             </div>
           </Link>
         </div>

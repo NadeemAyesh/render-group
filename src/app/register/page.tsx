@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { AuthRole, registerNewUser, getRedirectUrlForRole } from "@/lib/auth-service";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
@@ -83,13 +84,15 @@ export default function RegisterPage() {
 
       {/* Brand Header */}
       <div className="sm:mx-auto sm:w-full sm:max-w-xl text-center z-10 px-4">
-        <Link href="/" className="inline-flex items-center gap-2.5 mb-4 group">
-          <div className="w-10 h-10 rounded-xl gold-button-gradient flex items-center justify-center text-dark-950 font-bold shadow-lg shadow-gold-500/20 group-hover:scale-105 transition-transform">
-            <span className="material-symbols-outlined text-[24px]">all_inclusive</span>
-          </div>
-          <span className="text-2xl font-bold tracking-tight text-white">
-            Render<span className="text-gold-500">Lancer</span>
-          </span>
+        <Link href="/" className="inline-flex items-center justify-center mb-4 group">
+          <Image
+            src="/logo-dark.png"
+            alt="Render Connect"
+            width={200}
+            height={50}
+            className="h-12 w-auto object-contain group-hover:scale-105 transition-transform"
+            priority
+          />
         </Link>
         <h2 className="text-2xl md:text-3xl font-bold text-white tracking-tight">
           إنشاء حساب جديد في المنظومة

@@ -2,6 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
+import Image from "next/image";
 
 interface FooterProps {
   onOpenActivation?: () => void;
@@ -15,13 +16,14 @@ export const Footer: React.FC<FooterProps> = ({ onOpenActivation }) => {
           
           {/* Brand Col */}
           <div className="space-y-4">
-            <Link href="/" className="flex items-center gap-2 justify-center md:justify-start">
-              <div className="w-8 h-8 rounded-lg gold-button-gradient flex items-center justify-center text-dark-950 font-bold">
-                <span className="material-symbols-outlined text-[20px]">all_inclusive</span>
-              </div>
-              <span className="text-lg font-bold text-white">
-                Render<span className="text-gold-500">Lancer</span>
-              </span>
+            <Link href="/" className="inline-flex items-center gap-2 justify-center md:justify-start">
+              <Image
+                src="/logo-dark.png"
+                alt="Render Connect"
+                width={160}
+                height={40}
+                className="h-10 w-auto object-contain"
+              />
             </Link>
             <p className="text-xs text-gray-400 leading-relaxed">
               منصة العمل الحر وتمكين الكفاءات الفلسطينية واستوديو الذكاء الاصطناعي الموحد. إحدى المبادرات التكنولوجية

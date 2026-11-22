@@ -9,8 +9,21 @@ const ibmPlexArabic = IBM_Plex_Sans_Arabic({
 });
 
 export const metadata: Metadata = {
-  title: "RenderLancer & Render Studio | منصة العمل الحر واستوديو أدوات الذكاء الاصطناعي",
+  title: "Render Connect & Render Studio | منصة العمل الحر واستوديو أدوات الذكاء الاصطناعي",
   description: "المنظومة الرقمية الموحدة لتمكين الكفاءات الفلسطينية برعاية Render Group: سوق العمل الحر، صانع السير الذاتية بالذكاء الاصطناعي (ATS)، وأدوات الإبداع الرقمي الـ 12 الموحدة.",
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/favicon-32.png", type: "image/png", sizes: "32x32" },
+      { url: "/favicon-64.png", type: "image/png", sizes: "64x64" },
+      { url: "/favicon-192.png", type: "image/png", sizes: "192x192" },
+      { url: "/favicon-512.png", type: "image/png", sizes: "512x512" },
+    ],
+    apple: [
+      { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+    ],
+    shortcut: ["/favicon.ico"],
+  },
 };
 
 export default function RootLayout({

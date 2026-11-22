@@ -32,6 +32,7 @@ import {
   getPlans,
   togglePlanStatus,
   createPlan,
+  updatePlan,
   deletePlan,
   getSubscriptions,
   adminToggleSubscriptionStatus,
@@ -231,6 +232,21 @@ export default function SuperAdminDashboardPage() {
   const [newPlanVideosQuota, setNewPlanVideosQuota] = useState(50);
   const [newPlanChatQuota, setNewPlanChatQuota] = useState(5000);
   const [newPlanFeatures, setNewPlanFeatures] = useState("توليد صور 4K غير محدود, 50 فيديو سينمائي, سحب أرباح فوري, دعم فني 24/7");
+
+  // Edit Plan state
+  const [isEditPlanModalOpen, setIsEditPlanModalOpen] = useState(false);
+  const [editingPlan, setEditingPlan] = useState<PricingPlan | null>(null);
+  const [editPlanName, setEditPlanName] = useState("");
+  const [editPlanNameEn, setEditPlanNameEn] = useState("");
+  const [editPlanBadge, setEditPlanBadge] = useState("");
+  const [editPlanMonthlyPrice, setEditPlanMonthlyPrice] = useState(0);
+  const [editPlanYearlyPrice, setEditPlanYearlyPrice] = useState(0);
+  const [editPlanImagesQuota, setEditPlanImagesQuota] = useState(0);
+  const [editPlanVideosQuota, setEditPlanVideosQuota] = useState(0);
+  const [editPlanChatQuota, setEditPlanChatQuota] = useState(0);
+  const [editPlanFeatures, setEditPlanFeatures] = useState("");
+  const [editPlanPopular, setEditPlanPopular] = useState(false);
+  const [editPlanTargetRole, setEditPlanTargetRole] = useState<"JOB_SEEKER" | "EMPLOYER" | "ALL">("ALL");
 
   // Users Management State
   const [usersList, setUsersList] = useState<AuthUser[]>([]);
@@ -553,6 +569,43 @@ export default function SuperAdminDashboardPage() {
     setNewPlanName("");
     setNewPlanNameEn("");
     setNewPlanBadge("");
+    refreshSubscriptions();
+  };
+
+  const handleOpenEditPlan = (plan: PricingPlan) => {
+    setEditingPlan(plan);
+    setEditPlanName(plan.name);
+    setEditPlanNameEn(plan.nameEn || "");
+    setEditPlanBadge(plan.badge || "");
+    setEditPlanMonthlyPrice(plan.priceMonthly);
+    setEditPlanYearlyPrice(plan.priceYearly);
+    setEditPlanImagesQuota(plan.imagesQuota);
+    setEditPlanVideosQuota(plan.videosQuota);
+    setEditPlanChatQuota(plan.chatQuota);
+    setEditPlanFeatures(plan.features?.join(", ") || "");
+    setEditPlanPopular(Boolean(plan.popular));
+    setEditPlanTargetRole(plan.targetRole || "ALL");
+    setIsEditPlanModalOpen(true);
+  };
+
+  const handleUpdatePlan = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingPlan) return;
+    updatePlan(editingPlan.id, {
+      name: editPlanName,
+      nameEn: editPlanNameEn || editPlanName,
+      badge: editPlanBadge || undefined,
+      priceMonthly: Number(editPlanMonthlyPrice),
+      priceYearly: Number(editPlanYearlyPrice),
+      imagesQuota: Number(editPlanImagesQuota),
+      videosQuota: Number(editPlanVideosQuota),
+      chatQuota: Number(editPlanChatQuota),
+      popular: editPlanPopular,
+      targetRole: editPlanTargetRole,
+      features: editPlanFeatures.split(",").map((f) => f.trim()).filter(Boolean),
+    });
+    setIsEditPlanModalOpen(false);
+    setEditingPlan(null);
     refreshSubscriptions();
   };
 
@@ -2037,16 +2090,25 @@ export default function SuperAdminDashboardPage() {
                       </div>
 
                       {/* Plan Admin Actions */}
-                      <div className="pt-2.5 border-t border-slate-200 dark:border-dark-800 flex items-center justify-between gap-2">
+                      <div className="pt-2.5 border-t border-slate-200 dark:border-dark-800 flex items-center justify-between gap-1.5">
                         <button
                           onClick={() => handleTogglePlan(plan.id)}
-                          className={`w-full py-1.5 rounded-lg text-xs font-bold transition-all border ${
+                          className={`flex-1 py-1.5 rounded-lg text-[11px] font-bold transition-all border ${
                             plan.active
                               ? "bg-red-50 hover:bg-red-100 text-red-800 border-red-200 dark:bg-red-950/30 dark:hover:bg-red-950/50 dark:text-red-300 dark:border-red-800/40"
                               : "bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-950/30 dark:hover:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800/40"
                           }`}
                         >
-                          {plan.active ? "إلغاء التفعيل" : "تفعيل الباقة"}
+                          {plan.active ? "تعطيل" : "تفعيل"}
+                        </button>
+
+                        <button
+                          onClick={() => handleOpenEditPlan(plan)}
+                          className="px-2.5 py-1.5 rounded-lg text-[11px] font-bold bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30 flex items-center gap-1 transition-all"
+                          title="تعديل الباقة"
+                        >
+                          <span className="material-symbols-outlined text-[14px]">edit</span>
+                          <span>تعديل</span>
                         </button>
 
                         {!plan.isTrial && (
@@ -3647,6 +3709,180 @@ export default function SuperAdminDashboardPage() {
                   className="px-6 py-2 rounded-xl gold-button-gradient text-dark-950 font-bold text-xs shadow-lg"
                 >
                   إنشاء وتفعيل الباقة فورياً
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ================= MODAL: EDIT PRICING PLAN ================= */}
+      {isEditPlanModalOpen && editingPlan && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
+          <div className="relative w-full max-w-lg rounded-3xl glass-card p-6 md:p-8 border border-amber-500/40 shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto">
+            <button
+              onClick={() => {
+                setIsEditPlanModalOpen(false);
+                setEditingPlan(null);
+              }}
+              className="absolute top-5 left-5 text-gray-400 hover:text-white"
+            >
+              <span className="material-symbols-outlined text-[24px]">close</span>
+            </button>
+
+            <div>
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs font-bold mb-1.5">
+                <span className="material-symbols-outlined text-[15px]">edit_note</span>
+                <span>تعديل بيانات وحصص الباقة</span>
+              </div>
+              <h3 className="text-lg font-bold text-white">تعديل: {editingPlan.name}</h3>
+            </div>
+
+            <form onSubmit={handleUpdatePlan} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-white mb-1">اسم الباقة (عربي)</label>
+                <input
+                  type="text"
+                  required
+                  value={editPlanName}
+                  onChange={(e) => setEditPlanName(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl bg-dark-900 border border-amber-500/30 text-xs text-white"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-white mb-1">الاسم بالإنجليزي</label>
+                  <input
+                    type="text"
+                    value={editPlanNameEn}
+                    onChange={(e) => setEditPlanNameEn(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl bg-dark-900 border border-amber-500/30 text-xs text-white font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-white mb-1">شارة الباقة (Badge)</label>
+                  <input
+                    type="text"
+                    placeholder="مثال: الأكثر طلباً أو عرض محدود"
+                    value={editPlanBadge}
+                    onChange={(e) => setEditPlanBadge(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl bg-dark-900 border border-amber-500/30 text-xs text-white"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-white mb-1">السعر الشهري ($ USD)</label>
+                  <input
+                    type="number"
+                    required
+                    value={editPlanMonthlyPrice}
+                    onChange={(e) => setEditPlanMonthlyPrice(Number(e.target.value))}
+                    className="w-full px-3 py-2 rounded-xl bg-dark-900 border border-amber-500/30 text-xs text-emerald-400 font-mono font-bold"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-white mb-1">السعر السنوي ($ USD)</label>
+                  <input
+                    type="number"
+                    required
+                    value={editPlanYearlyPrice}
+                    onChange={(e) => setEditPlanYearlyPrice(Number(e.target.value))}
+                    className="w-full px-3 py-2 rounded-xl bg-dark-900 border border-amber-500/30 text-xs text-emerald-400 font-mono font-bold"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold text-white mb-1">رصيد الصور 4K</label>
+                  <input
+                    type="number"
+                    required
+                    value={editPlanImagesQuota}
+                    onChange={(e) => setEditPlanImagesQuota(Number(e.target.value))}
+                    className="w-full px-2.5 py-2 rounded-xl bg-dark-900 border border-amber-500/30 text-xs text-white font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-white mb-1">الفيديو السينمائي</label>
+                  <input
+                    type="number"
+                    required
+                    value={editPlanVideosQuota}
+                    onChange={(e) => setEditPlanVideosQuota(Number(e.target.value))}
+                    className="w-full px-2.5 py-2 rounded-xl bg-dark-900 border border-amber-500/30 text-xs text-white font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-white mb-1">المحادثات</label>
+                  <input
+                    type="number"
+                    required
+                    value={editPlanChatQuota}
+                    onChange={(e) => setEditPlanChatQuota(Number(e.target.value))}
+                    className="w-full px-2.5 py-2 rounded-xl bg-dark-900 border border-amber-500/30 text-xs text-white font-mono"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 items-center pt-1">
+                <div>
+                  <label className="block text-xs font-bold text-white mb-1">الفئة المستهدفة</label>
+                  <select
+                    value={editPlanTargetRole}
+                    onChange={(e) => setEditPlanTargetRole(e.target.value as "JOB_SEEKER" | "EMPLOYER" | "ALL")}
+                    className="w-full px-3 py-2 rounded-xl bg-dark-900 border border-amber-500/30 text-xs text-white"
+                  >
+                    <option value="ALL">الجميع (ALL)</option>
+                    <option value="JOB_SEEKER">المستقلون والباحثون عن عمل</option>
+                    <option value="EMPLOYER">الشركات وأصحاب الأعمال</option>
+                  </select>
+                </div>
+                <div className="flex items-center gap-2 pt-4">
+                  <input
+                    type="checkbox"
+                    id="editPlanPopular"
+                    checked={editPlanPopular}
+                    onChange={(e) => setEditPlanPopular(e.target.checked)}
+                    className="rounded border-amber-500/30 text-amber-500 focus:ring-amber-500"
+                  />
+                  <label htmlFor="editPlanPopular" className="text-xs text-slate-300 font-semibold cursor-pointer">
+                    تمييز كباقة موصى بها (Popular)
+                  </label>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-white mb-1">
+                  المزايا المشمولة (افصل بينها بفاصلة ,)
+                </label>
+                <textarea
+                  rows={3}
+                  value={editPlanFeatures}
+                  onChange={(e) => setEditPlanFeatures(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl bg-dark-900 border border-amber-500/30 text-xs text-white leading-relaxed"
+                />
+              </div>
+
+              <div className="pt-2 flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsEditPlanModalOpen(false);
+                    setEditingPlan(null);
+                  }}
+                  className="px-4 py-2 rounded-xl bg-dark-850 hover:bg-dark-800 text-gray-300 text-xs font-semibold"
+                >
+                  إلغاء
+                </button>
+                <button
+                  type="submit"
+                  className="px-6 py-2 rounded-xl gold-button-gradient text-dark-950 font-bold text-xs shadow-lg"
+                >
+                  حفظ التعديلات فورياً
                 </button>
               </div>
             </form>
