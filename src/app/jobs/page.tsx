@@ -319,7 +319,7 @@ export default function JobsPage() {
                     {job.aiMatch}% مطابقة مع كفاءات فلسطين
                   </span>
                   {job.postedBy === "SUPER_ADMIN" && (
-                    <span className="px-3 py-1 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/40 text-[10px] font-bold flex items-center gap-1">
+                    <span className="px-3 py-1 rounded-full bg-gold-500/15 text-amber-900 dark:text-gold-300 border border-gold-500/40 text-[10px] font-bold flex items-center gap-1">
                       <span className="material-symbols-outlined text-[13px]">verified</span>
                       <span>موثق من إدارة Render (Super Admin)</span>
                     </span>

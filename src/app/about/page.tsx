@@ -28,7 +28,7 @@ export default function AboutPage() {
       {/* Hero Section */}
       <section className="relative py-20 lg:py-28 overflow-hidden border-b border-gold-500/20">
         <div className="absolute top-1/4 right-1/4 w-[500px] h-[500px] bg-gold-500/10 rounded-full blur-[150px] pointer-events-none" />
-        <div className="absolute bottom-1/4 left-1/4 w-[400px] h-[400px] bg-purple-600/10 rounded-full blur-[140px] pointer-events-none" />
+        <div className="absolute bottom-1/4 left-1/4 w-[400px] h-[400px] bg-amber-600/10 rounded-full blur-[140px] pointer-events-none" />
 
         <div className="max-w-7xl mx-auto px-6 lg:px-12 relative z-10 text-center">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gold-500/10 border border-gold-500/30 text-gold-400 text-xs font-semibold mb-6">
@@ -79,7 +79,7 @@ export default function AboutPage() {
             <span className="block text-xs text-gray-400 mt-1 font-semibold">مدفوعات مؤمنة تم ضخها للداخل الفلسطيني</span>
           </div>
           <div className="p-4 rounded-2xl bg-dark-950/60 border border-gold-500/20">
-            <span className="text-3xl md:text-4xl font-bold text-purple-400 font-mono">12 أداة</span>
+            <span className="text-3xl md:text-4xl font-bold gold-gradient-text font-mono">12 أداة</span>
             <span className="block text-xs text-gray-400 mt-1 font-semibold">ذكاء اصطناعي موحدة باشتراك واحد</span>
           </div>
         </div>
@@ -140,8 +140,8 @@ export default function AboutPage() {
                 </p>
               </div>
 
-              <div className="p-4 rounded-2xl bg-dark-900 border border-purple-500/20">
-                <div className="flex items-center gap-2 text-purple-400 font-bold text-sm mb-1">
+              <div className="p-4 rounded-2xl bg-dark-900 border border-amber-500/25">
+                <div className="flex items-center gap-2 text-amber-400 font-bold text-sm mb-1">
                   <span className="material-symbols-outlined text-[18px]">token</span>
                   <span>2. Render Studio (ترسانة الـ 12 أداة للذكاء الاصطناعي)</span>
                 </div>
@@ -191,13 +191,13 @@ export default function AboutPage() {
               <span className="block text-[11px] text-blue-400 font-mono">diaspora@render.ps</span>
             </div>
 
-            <div className="p-6 rounded-2xl bg-dark-900 border border-purple-500/20 space-y-2">
-              <span className="material-symbols-outlined text-purple-400 text-[26px]">precision_manufacturing</span>
+            <div className="p-6 rounded-2xl bg-dark-900 border border-amber-500/25 space-y-2">
+              <span className="material-symbols-outlined text-amber-400 text-[26px]">precision_manufacturing</span>
               <h4 className="text-sm font-bold text-white">وحدة تطوير الذكاء الاصطناعي - Studio</h4>
               <p className="text-xs text-gray-400">
                 دمج وتحديث النماذج الـ 12 وتوليد أكواد التفعيل وتطوير البنية السحابية.
               </p>
-              <span className="block text-[11px] text-purple-400 font-mono">studio@render.ps</span>
+              <span className="block text-[11px] text-amber-400 font-mono">studio@render.ps</span>
             </div>
           </div>
         </div>

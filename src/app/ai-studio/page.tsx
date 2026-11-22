@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { ActivationModal } from "@/components/studio/ActivationModal";
+import { ToolBrandLogo } from "@/components/studio/ToolBrandLogo";
 import { getActiveSession, AuthUser } from "@/lib/auth-service";
 import {
   getUserSubscription,
@@ -73,7 +74,7 @@ const AI_TOOLS_LIST: AITool[] = [
     category: "video",
     categoryAr: "المتحدث الرقمي",
     badge: "مجاني للمشتركين",
-    badgeColor: "bg-purple-500/10 text-purple-400 border-purple-500/30",
+    badgeColor: "bg-amber-500/15 text-amber-300 border-amber-500/30",
     icon: "photo_camera_front",
     desc: "حوّل صورك الثابتة إلى أفتار متحدث يستعرض تقاريرك وعروضك بدقة متناهية مع حركة شفاه واقعية جداً.",
     capabilities: ["مزامنة حركة الشفاه Lip-sync", "أكثر من 40 لغة ونبرة صوت", "توليد فيديوهات تقديمية كاملة", "تصدير بجودة 1080p و 4K"],
@@ -308,7 +309,7 @@ export default function AIStudioCatalogPage() {
       {/* Hero Section */}
       <section className="relative py-16 lg:py-24 overflow-hidden border-b border-gold-500/20">
         <div className="absolute top-1/4 right-1/4 w-[500px] h-[500px] bg-gold-500/10 rounded-full blur-[150px] pointer-events-none" />
-        <div className="absolute bottom-1/4 left-1/4 w-[400px] h-[400px] bg-purple-600/10 rounded-full blur-[140px] pointer-events-none" />
+        <div className="absolute bottom-1/4 left-1/4 w-[400px] h-[400px] bg-amber-600/10 rounded-full blur-[140px] pointer-events-none" />
 
         <div className="max-w-7xl mx-auto px-6 lg:px-12 relative z-10 text-center">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gold-500/10 border border-gold-500/30 text-gold-400 text-xs font-semibold mb-6">
@@ -397,7 +398,7 @@ export default function AIStudioCatalogPage() {
                   </div>
                   <div className="w-full bg-dark-850 h-1.5 rounded-full overflow-hidden">
                     <div
-                      className="bg-purple-500 h-full rounded-full transition-all"
+                      className="bg-amber-500 h-full rounded-full transition-all"
                       style={{ width: `${Math.min(100, ((userSub.videosTotal - userSub.videosUsed) / userSub.videosTotal) * 100)}%` }}
                     />
                   </div>
@@ -480,13 +481,18 @@ export default function AIStudioCatalogPage() {
           {filteredTools.map((tool) => (
             <div
               key={tool.id}
-              className="glass-card p-6 rounded-3xl border border-gold-500/25 hover:border-gold-500/60 transition-all shadow-xl flex flex-col justify-between space-y-5 group"
+              className="glass-card p-6 rounded-3xl border border-gold-500/25 hover:border-gold-500/60 transition-all shadow-xl flex flex-col justify-between space-y-5 group relative overflow-hidden"
             >
-              <div className="space-y-4">
+              {/* Background Glow Motion */}
+              <div className="absolute -top-12 -right-12 w-48 h-48 rounded-full bg-gradient-to-br from-gold-500/20 via-gold-400/10 to-transparent blur-3xl animate-card-glow pointer-events-none group-hover:scale-130 group-hover:from-gold-500/35 transition-all duration-700" />
+              <div className="absolute -bottom-10 -left-10 w-36 h-36 rounded-full bg-gradient-to-tr from-amber-600/15 via-gold-500/8 to-transparent blur-2xl pointer-events-none group-hover:from-amber-600/25 transition-all duration-700" />
+              <div className="card-shimmer" />
+
+              <div className="space-y-4 relative z-10">
                 {/* Header with icon and badge */}
                 <div className="flex items-center justify-between">
-                  <div className="w-12 h-12 rounded-2xl bg-gold-500/10 border border-gold-500/30 flex items-center justify-center text-gold-400 group-hover:scale-110 transition-transform">
-                    <span className="material-symbols-outlined text-[26px]">{tool.icon}</span>
+                  <div className="w-13 h-13 p-2 rounded-2xl bg-white/90 dark:bg-dark-900/90 border border-gold-500/30 flex items-center justify-center shadow-md shadow-gold-500/10 group-hover:scale-110 group-hover:border-gold-500/70 transition-all duration-300">
+                    <ToolBrandLogo toolId={tool.id} size={30} />
                   </div>
                   <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${tool.badgeColor}`}>
                     {tool.badge}

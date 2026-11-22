@@ -75,7 +75,7 @@ export default function LoginPage() {
       
       {/* Background Glows */}
       <div className="absolute top-1/4 right-1/4 w-[400px] h-[400px] bg-gold-500/10 rounded-full blur-[140px] pointer-events-none" />
-      <div className="absolute bottom-1/4 left-1/4 w-[350px] h-[350px] bg-purple-600/10 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-1/4 left-1/4 w-[350px] h-[350px] bg-amber-600/10 rounded-full blur-[120px] pointer-events-none" />
 
       {/* Brand Header */}
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center z-10 px-4">

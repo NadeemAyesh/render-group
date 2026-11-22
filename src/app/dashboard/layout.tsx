@@ -1,27 +1,13 @@
 "use client";
 
-import React, { useState, useEffect, createContext, useContext } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { UserSessionState, SYSTEM_ROLES, hasPermission } from "@/lib/permissions";
 import { getActiveSession, clearActiveSession } from "@/lib/auth-service";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
-
-// Simulation Context for live user switching
-interface AuthContextType {
-  currentUser: UserSessionState;
-  switchRole: (roleName: string) => void;
-  toggleCustomPermission: (permId: string) => void;
-  logout: () => void;
-}
-
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) throw new Error("useAuth must be used within DashboardLayout");
-  return context;
-};
+import { AuthContext } from "@/context/DashboardAuthContext";
+import { ActionIconButton } from "@/components/ui/ActionIconButton";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -65,15 +51,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   };
 
   const toggleCustomPermission = (permId: string) => {
-    if (currentUser.customGrantedPermissions.includes(permId)) {
+    const granted = currentUser.customGrantedPermissions || [];
+    if (granted.includes(permId)) {
       setCurrentUser({
         ...currentUser,
-        customGrantedPermissions: currentUser.customGrantedPermissions.filter((p) => p !== permId),
+        customGrantedPermissions: granted.filter((p) => p !== permId),
       });
     } else {
       setCurrentUser({
         ...currentUser,
-        customGrantedPermissions: [...currentUser.customGrantedPermissions, permId],
+        customGrantedPermissions: [...granted, permId],
       });
     }
   };
@@ -132,13 +119,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     </span>
                   </div>
                 </div>
-                <button
+                <ActionIconButton
+                  icon="logout"
+                  label="تسجيل الخروج"
+                  variant="danger"
+                  size="sm"
                   onClick={handleLogout}
-                  title="تسجيل الخروج"
-                  className="p-1.5 rounded-lg bg-dark-900 hover:bg-dark-850 text-gray-400 hover:text-red-400 border border-gold-500/20 transition-colors shrink-0"
-                >
-                  <span className="material-symbols-outlined text-[16px]">logout</span>
-                </button>
+                />
               </div>
             </div>
 
@@ -200,8 +187,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
               {canSeeUsersRolesMenu && (
                 <Link
-                  href="/admin/permissions"
-                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-purple-300 bg-purple-500/10 border border-purple-500/30 hover:bg-purple-500/20"
+                  href="/admin?tab=permissions"
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gold-300 bg-gold-500/10 border border-gold-500/30 hover:bg-gold-500/20"
                 >
                   <span className="material-symbols-outlined text-[18px]">account_tree</span>
                   <span>شجرة الصلاحيات (Admin)</span>
@@ -261,8 +248,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               </div>
 
               <Link
-                href="/admin/permissions"
-                className="px-3.5 py-1.5 rounded-xl bg-purple-500/15 text-purple-300 border border-purple-500/30 hover:bg-purple-500/25 text-xs font-bold flex items-center gap-1"
+                href="/admin?tab=permissions"
+                className="px-3.5 py-1.5 rounded-xl bg-gold-500/15 text-gold-300 border border-gold-500/30 hover:bg-gold-500/25 text-xs font-bold flex items-center gap-1"
               >
                 <span className="material-symbols-outlined text-[16px]">account_tree</span>
                 <span className="hidden sm:inline">شجرة الصلاحيات</span>

@@ -127,7 +127,7 @@ export default function ProjectsShowcasePage() {
       {/* Header */}
       <section className="relative py-16 lg:py-24 overflow-hidden border-b border-gold-500/20">
         <div className="absolute top-1/4 right-1/4 w-[500px] h-[500px] bg-gold-500/10 rounded-full blur-[160px] pointer-events-none" />
-        <div className="absolute bottom-1/4 left-1/4 w-[400px] h-[400px] bg-purple-600/10 rounded-full blur-[140px] pointer-events-none" />
+        <div className="absolute bottom-1/4 left-1/4 w-[400px] h-[400px] bg-amber-600/10 rounded-full blur-[140px] pointer-events-none" />
 
         <div className="max-w-7xl mx-auto px-6 lg:px-12 relative z-10 text-center">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gold-500/10 border border-gold-500/30 text-gold-400 text-xs font-semibold mb-6">
@@ -249,14 +249,14 @@ export default function ProjectsShowcasePage() {
                   </div>
 
                   <div className="flex flex-wrap items-center gap-1.5">
-                    <span className="text-[10px] text-purple-400 font-semibold ml-1 flex items-center gap-0.5">
+                    <span className="text-[10px] text-gold-400 font-semibold ml-1 flex items-center gap-0.5">
                       <span className="material-symbols-outlined text-[12px]">token</span>
                       أدوات Studio:
                     </span>
                     {project.aiToolsUsed.map((tool, i) => (
                       <span
                         key={i}
-                        className="px-2 py-0.5 rounded-md bg-purple-500/15 text-purple-300 border border-purple-500/30 text-[10px] font-bold"
+                        className="px-2 py-0.5 rounded-md bg-gold-500/15 text-gold-300 border border-gold-500/30 text-[10px] font-bold"
                       >
                         {tool}
                       </span>

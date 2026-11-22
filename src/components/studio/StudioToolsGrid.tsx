@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { ToolBrandLogo } from "./ToolBrandLogo";
 
 interface ToolItem {
   id: string;
@@ -273,25 +274,54 @@ export const StudioToolsGrid: React.FC<StudioToolsGridProps> = ({ onOpenActivati
       {viewMode === "grid" ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredTools.map((tool) => (
-            <div key={tool.id} className="tool-card p-6 rounded-2xl flex flex-col justify-between group">
-              <div>
+            <div
+              key={tool.id}
+              className="tool-card p-6 rounded-2xl flex flex-col justify-between group relative overflow-hidden"
+            >
+              {/* === CARD BACKGROUND MOTION & AURORA GLOW === */}
+              {/* 1. Animated Ambient Orb in top corner */}
+              <div className="absolute -top-12 -right-12 w-48 h-48 rounded-full bg-gradient-to-br from-gold-500/20 via-gold-400/10 to-transparent blur-3xl animate-card-glow pointer-events-none group-hover:scale-130 group-hover:from-gold-500/35 transition-all duration-700" />
+              
+              {/* 2. Secondary Ambient Glow in bottom-left */}
+              <div className="absolute -bottom-10 -left-10 w-36 h-36 rounded-full bg-gradient-to-tr from-amber-600/15 via-gold-500/8 to-transparent blur-2xl pointer-events-none group-hover:from-amber-600/25 transition-all duration-700" />
+              
+              {/* 3. Subtle Digital Grid Pattern in Card Background */}
+              <div
+                className="absolute inset-0 opacity-[0.25] dark:opacity-[0.2] pointer-events-none transition-opacity duration-300 group-hover:opacity-45"
+                style={{
+                  backgroundImage: "radial-gradient(rgba(212, 175, 55, 0.35) 1px, transparent 1px)",
+                  backgroundSize: "18px 18px",
+                  maskImage: "radial-gradient(ellipse 85% 85% at 75% 25%, #000 25%, transparent 85%)",
+                  WebkitMaskImage: "radial-gradient(ellipse 85% 85% at 75% 25%, #000 25%, transparent 85%)",
+                }}
+              />
+
+              {/* 4. Moving Shimmer Beam on Hover */}
+              <div className="card-shimmer" />
+
+              {/* === CARD CONTENT (High Z-Index) === */}
+              <div className="relative z-10">
                 <div className="flex items-center justify-between mb-4">
-                  <div className="w-12 h-12 rounded-xl bg-gold-500/10 border border-gold-500/30 flex items-center justify-center text-gold-400 group-hover:bg-gold-500 group-hover:text-dark-950 transition-colors">
-                    <span className="material-symbols-outlined text-[26px]">{tool.icon}</span>
+                  {/* Distinctive Brand Logo Container */}
+                  <div className="w-13 h-13 p-2 rounded-2xl bg-white/90 dark:bg-dark-900/90 border border-gold-500/30 flex items-center justify-center shadow-md shadow-gold-500/10 group-hover:scale-110 group-hover:border-gold-500/70 group-hover:shadow-gold-500/25 transition-all duration-300">
+                    <ToolBrandLogo toolId={tool.id} size={30} />
                   </div>
                   <span className="text-[10px] px-2.5 py-1 rounded-full bg-gold-500/10 text-gold-400 border border-gold-500/30 font-medium">
                     {tool.categoryLabel}
                   </span>
                 </div>
-                <h3 className="text-lg font-bold text-white mb-1.5">{tool.name}</h3>
+                <h3 className="text-lg font-bold text-white mb-1.5 group-hover:text-gold-300 transition-colors">
+                  {tool.name}
+                </h3>
                 <p className="text-xs text-gray-400 leading-relaxed">{tool.description}</p>
               </div>
-              <div className="mt-6 pt-4 border-t border-gold-500/15 flex items-center justify-between">
-                <span className="text-[11px] text-emerald-400 flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+
+              <div className="relative z-10 mt-6 pt-4 border-t border-gold-500/15 flex items-center justify-between">
+                <span className="text-[11px] text-emerald-400 flex items-center gap-1 font-medium">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
                   {tool.statusBadge}
                 </span>
-                <button className="px-3 py-1.5 rounded-lg bg-dark-850 hover:bg-gold-500 hover:text-dark-950 text-gold-400 font-bold text-xs border border-gold-500/25 transition-all">
+                <button className="px-3.5 py-1.5 rounded-lg bg-dark-850 hover:bg-gold-500 hover:text-dark-950 text-gold-400 font-bold text-xs border border-gold-500/25 shadow-sm transition-all hover:scale-105 active:scale-95">
                   {tool.actionText}
                 </button>
               </div>
@@ -303,22 +333,29 @@ export const StudioToolsGrid: React.FC<StudioToolsGridProps> = ({ onOpenActivati
           {filteredTools.map((tool) => (
             <div
               key={tool.id}
-              className="tool-card p-4 rounded-xl flex items-center justify-between gap-4"
+              className="tool-card p-4 rounded-xl flex items-center justify-between gap-4 relative overflow-hidden group"
             >
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-lg bg-gold-500/10 border border-gold-500/30 flex items-center justify-center text-gold-400 shrink-0">
-                  <span className="material-symbols-outlined text-[22px]">{tool.icon}</span>
+              {/* Background ambient glow in list mode */}
+              <div className="absolute top-0 right-0 w-36 h-full bg-gradient-to-l from-gold-500/10 to-transparent pointer-events-none group-hover:from-gold-500/20 transition-all duration-500" />
+              <div className="card-shimmer" />
+
+              <div className="flex items-center gap-4 relative z-10">
+                <div className="w-11 h-11 p-2 rounded-xl bg-white/90 dark:bg-dark-900/90 border border-gold-500/30 flex items-center justify-center shrink-0 shadow-sm group-hover:scale-110 transition-transform">
+                  <ToolBrandLogo toolId={tool.id} size={24} />
                 </div>
                 <div>
-                  <h4 className="text-sm font-bold text-white">{tool.name}</h4>
+                  <h4 className="text-sm font-bold text-white group-hover:text-gold-300 transition-colors">
+                    {tool.name}
+                  </h4>
                   <p className="text-xs text-gray-400 line-clamp-1">{tool.description}</p>
                 </div>
               </div>
-              <div className="flex items-center gap-3 shrink-0">
-                <span className="text-[10px] px-2 py-0.5 rounded bg-dark-850 text-emerald-400 border border-emerald-500/30 hidden md:block">
+              <div className="flex items-center gap-3 shrink-0 relative z-10">
+                <span className="text-[10px] px-2 py-0.5 rounded bg-dark-850 text-emerald-400 border border-emerald-500/30 hidden md:flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
                   {tool.statusBadge}
                 </span>
-                <button className="px-3 py-1.5 rounded-lg bg-dark-850 hover:bg-gold-500 hover:text-dark-950 text-gold-400 font-bold text-xs border border-gold-500/25 transition-all">
+                <button className="px-3 py-1.5 rounded-lg bg-dark-850 hover:bg-gold-500 hover:text-dark-950 text-gold-400 font-bold text-xs border border-gold-500/25 transition-all hover:scale-105">
                   {tool.actionText}
                 </button>
               </div>

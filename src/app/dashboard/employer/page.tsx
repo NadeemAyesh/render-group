@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { getActiveSession, clearActiveSession, AuthUser } from "@/lib/auth-service";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
+import { ActionIconButton } from "@/components/ui/ActionIconButton";
 
 interface Applicant {
   id: string;
@@ -269,13 +270,13 @@ export default function EmployerDashboardPage() {
                   </span>
                 </div>
               </div>
-              <button
+              <ActionIconButton
+                icon="logout"
+                label="تسجيل الخروج"
+                variant="danger"
+                size="sm"
                 onClick={handleLogout}
-                title="تسجيل الخروج"
-                className="p-1.5 rounded-lg bg-dark-900 hover:bg-dark-850 text-gray-400 hover:text-red-400 border border-gold-500/20 transition-colors shrink-0"
-              >
-                <span className="material-symbols-outlined text-[16px]">logout</span>
-              </button>
+              />
             </div>
             <div className="pt-2 border-t border-gold-500/10 flex items-center justify-between text-[10px] text-gray-400">
               <span>الرصيد في الضمان:</span>
@@ -332,7 +333,7 @@ export default function EmployerDashboardPage() {
           </Link>
           <Link
             href="/admin"
-            className="w-full flex items-center justify-center gap-2 py-2 rounded-xl bg-purple-500/15 text-purple-300 text-xs font-semibold hover:bg-purple-500/25 border border-purple-500/30"
+            className="w-full flex items-center justify-center gap-2 py-2 rounded-xl bg-gold-500/15 text-gold-300 text-xs font-semibold hover:bg-gold-500/25 border border-gold-500/30"
           >
             <span className="material-symbols-outlined text-[16px]">shield</span>
             <span>لوحة الـ Super Admin</span>

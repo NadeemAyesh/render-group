@@ -16,7 +16,7 @@ export interface SiteContent {
 }
 
 export const DEFAULT_SITE_CONTENT: SiteContent = {
-  heroBadge: "منظومة Render Group الموحدة: العمل الحر + ترسانة الذكاء الاصطناعي الشاملة",
+  heroBadge: "المنصة الفلسطينية الموحدة للإبداع الرقمي والعمل الحر",
   heroTitle: "RENDER GROUP",
   heroHighlight: "STUDIO & FREELANCE",
   heroDescription:
@@ -39,7 +39,12 @@ export function getSiteContent(): SiteContent {
   try {
     const raw = localStorage.getItem(CMS_STORAGE_KEY);
     if (!raw) return DEFAULT_SITE_CONTENT;
-    return { ...DEFAULT_SITE_CONTENT, ...JSON.parse(raw) };
+    const parsed = JSON.parse(raw);
+    // Auto-migrate outdated AI boilerplate copy
+    if (parsed.heroBadge && parsed.heroBadge.includes("ترسانة الذكاء الاصطناعي")) {
+      parsed.heroBadge = DEFAULT_SITE_CONTENT.heroBadge;
+    }
+    return { ...DEFAULT_SITE_CONTENT, ...parsed };
   } catch {
     return DEFAULT_SITE_CONTENT;
   }

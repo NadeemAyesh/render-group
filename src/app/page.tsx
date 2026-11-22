@@ -35,9 +35,9 @@ export default function HomePage() {
 
           <div className="relative max-w-5xl mx-auto px-6 text-center z-10 flex flex-col items-center">
             
-            <div className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-dark-850/90 border border-gold-500/30 backdrop-blur-md mb-8 shadow-xl">
-              <span className="material-symbols-outlined text-gold-400 text-[18px]">verified</span>
-              <span className="text-xs font-semibold text-gold-300 tracking-wide">
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-500/10 dark:bg-amber-500/10 border border-amber-500/30 text-amber-900 dark:text-amber-300 mb-8 shadow-xs">
+              <span className="material-symbols-outlined text-amber-600 dark:text-amber-400 text-[18px]">verified</span>
+              <span className="text-xs font-bold tracking-wide">
                 {cms.heroBadge}
               </span>
             </div>
@@ -51,30 +51,35 @@ export default function HomePage() {
             </p>
 
             {/* Quick Action Navigation Strip / Interactive Hub */}
-            <div className="mt-8 flex flex-wrap items-center justify-center gap-2.5 p-2 rounded-2xl bg-white/70 dark:bg-dark-900/60 backdrop-blur-xl border border-gold-500/25 shadow-xl shadow-gold-500/5 max-w-4xl mx-auto">
+            <div className="mt-8 flex flex-wrap items-center justify-center gap-3 max-w-4xl mx-auto">
               <Link
                 href="/projects"
-                className="group relative flex items-center gap-2.5 px-5 py-3 rounded-xl gold-button-gradient text-dark-950 font-bold text-xs md:text-sm shadow-md shadow-gold-500/20 hover:shadow-lg hover:shadow-gold-500/35 hover:scale-[1.02] active:scale-[0.98] transition-all"
+                className="group relative flex items-center gap-2 px-5 py-2.5 rounded-xl gold-button-gradient text-slate-950 font-bold text-xs md:text-sm shadow-md shadow-gold-500/25 hover:shadow-lg hover:shadow-gold-500/40 hover:scale-105 active:scale-95 transition-all"
               >
-                <div className="w-7 h-7 rounded-lg bg-dark-950/15 flex items-center justify-center text-dark-950">
-                  <span className="material-symbols-outlined text-[18px]">verified</span>
-                </div>
+                <span className="material-symbols-outlined text-[18px]">verified</span>
                 <span>مشاريع منجزة من ريندر</span>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-dark-950/10 text-dark-950 font-bold">
+                <span className="text-[10px] px-2 py-0.5 rounded-md bg-slate-950/15 text-slate-950 font-extrabold">
                   موثقة
                 </span>
               </Link>
 
               <Link
-                href="/cv-builder"
-                className="group flex items-center gap-2.5 px-4 py-3 rounded-xl bg-white/90 dark:bg-dark-950/70 hover:bg-gold-500/10 dark:hover:bg-gold-500/15 border border-gold-500/30 hover:border-gold-500/60 shadow-sm hover:shadow-md transition-all hover:scale-[1.02] active:scale-[0.98]"
+                href="/courses"
+                className="group flex items-center gap-2 px-4 py-2.5 rounded-xl border border-amber-500/35 hover:border-amber-500 text-slate-800 dark:text-gray-200 hover:text-amber-700 dark:hover:text-amber-300 hover:bg-amber-500/10 dark:hover:bg-amber-500/15 text-xs md:text-sm font-bold transition-all hover:scale-105 active:scale-95"
               >
-                <div className="w-7 h-7 rounded-lg bg-amber-500/10 border border-amber-500/25 flex items-center justify-center text-amber-600 dark:text-amber-400 group-hover:scale-110 transition-transform">
-                  <span className="material-symbols-outlined text-[18px]">description</span>
-                </div>
-                <span className="text-xs md:text-sm font-bold text-slate-900 dark:text-gray-100 group-hover:text-gold-600 dark:group-hover:text-gold-300 transition-colors">
-                  صانع السيرة الذاتية
+                <span className="material-symbols-outlined text-amber-600 dark:text-amber-400 text-[18px]">school</span>
+                <span>أكاديمية الدورات</span>
+                <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 font-bold border border-emerald-500/30">
+                  تكليفات عملية
                 </span>
+              </Link>
+
+              <Link
+                href="/cv-builder"
+                className="group flex items-center gap-2 px-4 py-2.5 rounded-xl border border-amber-500/35 hover:border-amber-500 text-slate-800 dark:text-gray-200 hover:text-amber-700 dark:hover:text-amber-300 hover:bg-amber-500/10 dark:hover:bg-amber-500/15 text-xs md:text-sm font-bold transition-all hover:scale-105 active:scale-95"
+              >
+                <span className="material-symbols-outlined text-amber-600 dark:text-amber-400 text-[18px]">description</span>
+                <span>صانع السيرة الذاتية</span>
                 <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-amber-500/15 text-amber-800 dark:text-amber-300 font-bold border border-amber-500/30">
                   ATS
                 </span>
@@ -82,29 +87,21 @@ export default function HomePage() {
 
               <Link
                 href="/ai-studio"
-                className="group flex items-center gap-2.5 px-4 py-3 rounded-xl bg-white/90 dark:bg-dark-950/70 hover:bg-gold-500/10 dark:hover:bg-gold-500/15 border border-gold-500/30 hover:border-gold-500/60 shadow-sm hover:shadow-md transition-all hover:scale-[1.02] active:scale-[0.98]"
+                className="group flex items-center gap-2 px-4 py-2.5 rounded-xl border border-amber-500/35 hover:border-amber-500 text-slate-800 dark:text-gray-200 hover:text-amber-700 dark:hover:text-amber-300 hover:bg-amber-500/10 dark:hover:bg-amber-500/15 text-xs md:text-sm font-bold transition-all hover:scale-105 active:scale-95"
               >
-                <div className="w-7 h-7 rounded-lg bg-gold-500/10 border border-gold-500/25 flex items-center justify-center text-gold-600 dark:text-gold-400 group-hover:scale-110 transition-transform">
-                  <span className="material-symbols-outlined text-[18px]">token</span>
-                </div>
-                <span className="text-xs md:text-sm font-bold text-slate-900 dark:text-gray-100 group-hover:text-gold-600 dark:group-hover:text-gold-300 transition-colors">
-                  استوديو الـ AI
-                </span>
-                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-gold-500/15 text-gold-800 dark:text-gold-300 font-bold border border-gold-500/30">
+                <span className="material-symbols-outlined text-amber-600 dark:text-amber-400 text-[18px]">token</span>
+                <span>استوديو الـ AI</span>
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-800 dark:text-amber-300 font-bold border border-amber-500/30">
                   12 أداة
                 </span>
               </Link>
 
               <Link
                 href="/about"
-                className="group flex items-center gap-2.5 px-4 py-3 rounded-xl bg-white/90 dark:bg-dark-950/70 hover:bg-gold-500/10 dark:hover:bg-gold-500/15 border border-gold-500/30 hover:border-gold-500/60 shadow-sm hover:shadow-md transition-all hover:scale-[1.02] active:scale-[0.98]"
+                className="group flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-300 dark:border-dark-700 hover:border-amber-500 text-slate-700 dark:text-gray-300 hover:text-amber-700 dark:hover:text-amber-300 hover:bg-amber-500/10 dark:hover:bg-amber-500/15 text-xs md:text-sm font-bold transition-all hover:scale-105 active:scale-95"
               >
-                <div className="w-7 h-7 rounded-lg bg-sky-500/10 border border-sky-500/25 flex items-center justify-center text-sky-600 dark:text-sky-400 group-hover:scale-110 transition-transform">
-                  <span className="material-symbols-outlined text-[18px]">info</span>
-                </div>
-                <span className="text-xs md:text-sm font-bold text-slate-900 dark:text-gray-100 group-hover:text-gold-600 dark:group-hover:text-gold-300 transition-colors">
-                  تعريف بشركة Render
-                </span>
+                <span className="material-symbols-outlined text-sky-600 dark:text-sky-400 text-[18px]">info</span>
+                <span>تعريف بشركة Render</span>
               </Link>
             </div>
 
@@ -225,8 +222,8 @@ export default function HomePage() {
                 </p>
               </div>
 
-              <div className="p-6 rounded-2xl bg-dark-900 border border-purple-500/20 space-y-2">
-                <span className="material-symbols-outlined text-purple-400 text-[26px]">token</span>
+              <div className="p-6 rounded-2xl bg-dark-900 border border-amber-500/20 space-y-2">
+                <span className="material-symbols-outlined text-amber-400 text-[26px]">token</span>
                 <h4 className="text-sm font-bold text-white">استوديو Render Studio (12 أداة)</h4>
                 <p className="text-xs text-gray-400 leading-relaxed">
                   ترسانة توليد الفيديو السينمائي والصور والـ 3D والنماذج اللغوية باشتراك موحد بدون عوائق بنكية.
@@ -282,7 +279,7 @@ export default function HomePage() {
 
             <div className="glass-card p-6 rounded-3xl border border-gold-500/25 flex flex-col justify-between space-y-4">
               <div>
-                <span className="px-2.5 py-0.5 rounded-full bg-purple-500/15 text-purple-300 border border-purple-500/30 text-[10px] font-bold">
+                <span className="px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-900 dark:text-amber-300 border border-amber-500/30 text-[10px] font-bold">
                   فيديو سينمائي 4K
                 </span>
                 <h3 className="text-base font-bold text-white mt-2">حملة إعلانية سينمائية بـ Veo 3.1 & Seedance</h3>
@@ -481,6 +478,170 @@ export default function HomePage() {
                   عرض الملف
                 </Link>
               </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ================= ACADEMY COURSES & PRACTICAL ASSIGNMENTS ================= */}
+        <section className="py-20 border-t border-gold-500/15 bg-gradient-to-b from-dark-900/70 via-dark-950 to-dark-950">
+          <div className="max-w-7xl mx-auto px-6">
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
+              <div>
+                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-bold mb-3 shadow-sm">
+                  <span className="material-symbols-outlined text-[18px] text-amber-400">school</span>
+                  <span>أكاديمية ريندر للتدريب الاحترافي</span>
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                  <span className="text-[10px] text-emerald-300 font-mono">YouTube + تسليم تكليفات</span>
+                </div>
+                <h2 className="text-2xl md:text-4xl font-extrabold text-white">
+                  شروحات يوتيوب تفصيلية مع <span className="gold-gradient-text">متابعة وتصحيح التكليفات</span>
+                </h2>
+                <p className="text-xs md:text-sm text-gray-400 max-w-2xl mt-2.5 leading-relaxed">
+                  تعلم المهارات المطلوبة في سوق العمل بالمشاهدة عبر يوتيوب، وطبّق تكليفاتك البرمجية والإبداعية على المنصة مع تصحيح وملاحظات مباشرة من Super Admin ومدربي ريندر.
+                </p>
+              </div>
+
+              <Link
+                href="/courses"
+                className="px-6 py-3.5 rounded-2xl gold-button-gradient text-dark-950 font-bold text-xs md:text-sm flex items-center gap-2 shadow-lg shadow-gold-500/20 hover:scale-105 active:scale-95 transition-all shrink-0 self-start md:self-auto"
+              >
+                <span>دخول بوابة الدورات والتكليفات</span>
+                <span className="material-symbols-outlined text-[18px]">arrow_back</span>
+              </Link>
+            </div>
+
+            {/* Courses Showcase Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              
+              {/* Card 1: Eng. Azza Aljamal - SketchUp */}
+              <div className="p-5 rounded-3xl bg-dark-900 border border-gold-500/25 flex flex-col justify-between hover:border-gold-500/50 hover:shadow-xl transition-all group">
+                <div>
+                  <div className="aspect-video w-full rounded-2xl overflow-hidden mb-4 relative bg-dark-950">
+                    <img
+                      src="https://images.unsplash.com/photo-1503387762-592deb58ef4e?auto=format&fit=crop&w=800&q=80"
+                      alt="SketchUp Engineering"
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                    <div className="absolute top-2.5 right-2.5 px-2 py-0.5 rounded-full bg-red-600/90 text-white text-[10px] font-bold flex items-center gap-1">
+                      <span className="material-symbols-outlined text-[12px]">smart_display</span>
+                      <span>يوتيوب</span>
+                    </div>
+                    <div className="absolute bottom-2.5 right-2.5 px-2 py-0.5 rounded-md bg-dark-950/80 text-amber-300 border border-amber-500/30 text-[10px] font-mono">
+                      6 محاضرات • تكليفات مصححة
+                    </div>
+                  </div>
+
+                  <span className="text-[10px] px-2 py-0.5 rounded bg-purple-500/15 text-purple-300 border border-purple-500/30 font-bold inline-block mb-2">
+                    النمذجة والرسم الهندسي 3D
+                  </span>
+                  <h3 className="text-sm md:text-base font-bold text-white mb-2 leading-snug group-hover:text-gold-300 transition-colors">
+                    مساق الرسم الهندسي المحوسب والنمذجة بـ SketchUp Pro
+                  </h3>
+                  <p className="text-xs text-gray-400 line-clamp-2 leading-relaxed mb-4">
+                    تعلم أدوات الرسم والرفع، الكاميرا، المقاطع Section Planes، وتصدير DWG للأوتوكاد مع تكليفات معمارية مصححة على المنصة.
+                  </p>
+                </div>
+
+                <div className="pt-3 border-t border-gold-500/15 flex items-center justify-between">
+                  <div className="text-xs text-gray-300">
+                    بإشراف: <strong className="text-white">م. عزة رفعت الجمل (UCAS)</strong>
+                  </div>
+                  <Link
+                    href="/courses/course-sketchup-aljamal"
+                    className="px-3.5 py-1.5 rounded-xl bg-gold-500/15 hover:bg-gold-500 text-gold-300 hover:text-dark-950 font-bold text-xs transition-colors flex items-center gap-1"
+                  >
+                    <span>دخول المساق</span>
+                    <span className="material-symbols-outlined text-[14px]">arrow_back</span>
+                  </Link>
+                </div>
+              </div>
+
+              {/* Card 2 */}
+              <div className="p-5 rounded-3xl bg-dark-900 border border-gold-500/25 flex flex-col justify-between hover:border-gold-500/50 hover:shadow-xl transition-all group">
+                <div>
+                  <div className="aspect-video w-full rounded-2xl overflow-hidden mb-4 relative bg-dark-950">
+                    <img
+                      src="https://images.unsplash.com/photo-1574717024653-61fd2cf4d44d?auto=format&fit=crop&w=800&q=80"
+                      alt="Motion AI"
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                    <div className="absolute top-2.5 right-2.5 px-2 py-0.5 rounded-full bg-red-600/90 text-white text-[10px] font-bold flex items-center gap-1">
+                      <span className="material-symbols-outlined text-[12px]">smart_display</span>
+                      <span>يوتيوب</span>
+                    </div>
+                    <div className="absolute bottom-2.5 right-2.5 px-2 py-0.5 rounded-md bg-dark-950/80 text-amber-300 border border-amber-500/30 text-[10px] font-mono">
+                      4 تكليفات عملية
+                    </div>
+                  </div>
+
+                  <span className="text-[10px] px-2 py-0.5 rounded bg-rose-500/15 text-rose-300 border border-rose-500/30 font-bold inline-block mb-2">
+                    الموشن جرافيك والمونتاج
+                  </span>
+                  <h3 className="text-sm md:text-base font-bold text-white mb-2 leading-snug group-hover:text-gold-300 transition-colors">
+                    دبلوم صناعة المحتوى المرئي والموشن جرافيك بالذكاء الاصطناعي
+                  </h3>
+                  <p className="text-xs text-gray-400 line-clamp-2 leading-relaxed mb-4">
+                    تعلم أسرار الإخراج البصري والتحريك السينمائي بأدوات Veo 3.1 و Seedance مع تكليفات مونتاج مصححة.
+                  </p>
+                </div>
+
+                <div className="pt-3 border-t border-gold-500/15 flex items-center justify-between">
+                  <div className="text-xs text-gray-300">
+                    بإشراف: <strong className="text-white">م. حمزة رضوان</strong>
+                  </div>
+                  <Link
+                    href="/courses/course-motion-ai"
+                    className="px-3.5 py-1.5 rounded-xl bg-gold-500/15 hover:bg-gold-500 text-gold-300 hover:text-dark-950 font-bold text-xs transition-colors flex items-center gap-1"
+                  >
+                    <span>ابدأ التعلم</span>
+                    <span className="material-symbols-outlined text-[14px]">arrow_back</span>
+                  </Link>
+                </div>
+              </div>
+
+              {/* Card 3 */}
+              <div className="p-5 rounded-3xl bg-dark-900 border border-gold-500/25 flex flex-col justify-between hover:border-gold-500/50 hover:shadow-xl transition-all group">
+                <div>
+                  <div className="aspect-video w-full rounded-2xl overflow-hidden mb-4 relative bg-dark-950">
+                    <img
+                      src="https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=800&q=80"
+                      alt="Nextjs"
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                    <div className="absolute top-2.5 right-2.5 px-2 py-0.5 rounded-full bg-red-600/90 text-white text-[10px] font-bold flex items-center gap-1">
+                      <span className="material-symbols-outlined text-[12px]">smart_display</span>
+                      <span>يوتيوب</span>
+                    </div>
+                    <div className="absolute bottom-2.5 right-2.5 px-2 py-0.5 rounded-md bg-dark-950/80 text-blue-300 border border-blue-500/30 text-[10px] font-mono">
+                      3 تكليفات برمجية
+                    </div>
+                  </div>
+
+                  <span className="text-[10px] px-2 py-0.5 rounded bg-blue-500/15 text-blue-300 border border-blue-500/30 font-bold inline-block mb-2">
+                    تطوير الويب والبرمجة
+                  </span>
+                  <h3 className="text-sm md:text-base font-bold text-white mb-2 leading-snug group-hover:text-gold-300 transition-colors">
+                    هندسة تطبيقات الويب مع Next.js 15 و PostgreSQL و Escrow
+                  </h3>
+                  <p className="text-xs text-gray-400 line-clamp-2 leading-relaxed mb-4">
+                    بناء أنظمة الصلاحيات RBAC، دورة حياة الضمان المالي، وتأمين الـ API مع مراجعة كود Code Review.
+                  </p>
+                </div>
+
+                <div className="pt-3 border-t border-gold-500/15 flex items-center justify-between">
+                  <div className="text-xs text-gray-300">
+                    بإشراف: <strong className="text-white">المهندس نديم (Super Admin)</strong>
+                  </div>
+                  <Link
+                    href="/courses/course-nextjs-enterprise"
+                    className="px-3.5 py-1.5 rounded-xl bg-gold-500/15 hover:bg-gold-500 text-gold-300 hover:text-dark-950 font-bold text-xs transition-colors flex items-center gap-1"
+                  >
+                    <span>ابدأ التعلم</span>
+                    <span className="material-symbols-outlined text-[14px]">arrow_back</span>
+                  </Link>
+                </div>
+              </div>
+
             </div>
           </div>
         </section>

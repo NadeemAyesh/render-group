@@ -93,7 +93,7 @@ export default function PricingPage() {
       {/* Hero Header */}
       <section className="relative py-16 lg:py-24 overflow-hidden border-b border-gold-500/20">
         <div className="absolute top-1/4 right-1/4 w-[500px] h-[500px] bg-gold-500/10 rounded-full blur-[160px] pointer-events-none" />
-        <div className="absolute bottom-1/4 left-1/4 w-[400px] h-[400px] bg-purple-600/10 rounded-full blur-[140px] pointer-events-none" />
+        <div className="absolute bottom-1/4 left-1/4 w-[400px] h-[400px] bg-amber-600/10 rounded-full blur-[140px] pointer-events-none" />
 
         <div className="max-w-7xl mx-auto px-6 lg:px-12 relative z-10 text-center">
           
@@ -134,27 +134,27 @@ export default function PricingPage() {
           )}
 
           {/* Billing Cycle Switcher */}
-          <div className="inline-flex items-center p-1.5 rounded-2xl bg-dark-900 border border-gold-500/30 shadow-xl">
+          <div className="inline-flex items-center p-1 rounded-full bg-slate-100 dark:bg-dark-900 border border-slate-200 dark:border-dark-800 shadow-2xs">
             <button
               onClick={() => setBillingCycle("monthly")}
-              className={`px-6 py-2.5 rounded-xl text-xs font-bold transition-all ${
+              className={`px-5 py-2 rounded-full text-xs font-bold transition-all ${
                 billingCycle === "monthly"
-                  ? "gold-button-gradient text-dark-950 shadow-md"
-                  : "text-gray-400 hover:text-white"
+                  ? "gold-button-gradient text-slate-950 shadow-xs"
+                  : "text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white"
               }`}
             >
               دفع شهري (تجديد مرن)
             </button>
             <button
               onClick={() => setBillingCycle("yearly")}
-              className={`px-6 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+              className={`px-5 py-2 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 ${
                 billingCycle === "yearly"
-                  ? "gold-button-gradient text-dark-950 shadow-md"
-                  : "text-gray-400 hover:text-white"
+                  ? "gold-button-gradient text-slate-950 shadow-xs"
+                  : "text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white"
               }`}
             >
               <span>دفع سنوي</span>
-              <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-extrabold border border-emerald-500/40">
+              <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 text-[10px] font-extrabold border border-emerald-500/30">
                 وفر 20%
               </span>
             </button>
@@ -191,7 +191,7 @@ export default function PricingPage() {
                           ? "gold-button-gradient text-dark-950"
                           : isFree
                           ? "bg-emerald-500 text-dark-950"
-                          : "bg-purple-600 text-white"
+                          : "bg-dark-800 text-gold-400 border border-gold-500/40"
                       }`}
                     >
                       {plan.badge}
@@ -250,7 +250,7 @@ export default function PricingPage() {
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-gray-400 flex items-center gap-1">
-                        <span className="material-symbols-outlined text-[15px] text-purple-400">movie</span>
+                        <span className="material-symbols-outlined text-[15px] text-amber-400">movie</span>
                         فيديو سينمائي:
                       </span>
                       <strong className="text-white font-mono">{plan.videosQuota} فيديو</strong>
@@ -338,7 +338,7 @@ export default function PricingPage() {
                 <th className="p-4 md:p-5 font-bold text-emerald-400">التجربة المجانية (3 أيام)</th>
                 <th className="p-4 md:p-5 font-bold text-gold-400">المستقل المحترف (Pro)</th>
                 <th className="p-4 md:p-5 font-bold text-blue-400">الشركات (Agency)</th>
-                <th className="p-4 md:p-5 font-bold text-purple-400">المؤسسات (Enterprise)</th>
+                <th className="p-4 md:p-5 font-bold text-amber-400">المؤسسات (Enterprise)</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gold-500/10">
@@ -347,21 +347,21 @@ export default function PricingPage() {
                 <td className="p-4 font-mono text-gray-300">50 صورة</td>
                 <td className="p-4 font-mono text-gold-400 font-bold">500 صورة</td>
                 <td className="p-4 font-mono text-blue-400 font-bold">2,000 صورة</td>
-                <td className="p-4 font-mono text-purple-400 font-bold">10,000 صورة</td>
+                <td className="p-4 font-mono text-amber-400 font-bold">10,000 صورة</td>
               </tr>
               <tr>
                 <td className="p-4 font-bold text-white">الفيديو السينمائي (Veo 3.1 & Seedance)</td>
                 <td className="p-4 font-mono text-gray-300">3 فيديوهات</td>
                 <td className="p-4 font-mono text-gold-400 font-bold">30 فيديو</td>
                 <td className="p-4 font-mono text-blue-400 font-bold">150 فيديو</td>
-                <td className="p-4 font-mono text-purple-400 font-bold">800 فيديو</td>
+                <td className="p-4 font-mono text-amber-400 font-bold">800 فيديو</td>
               </tr>
               <tr>
                 <td className="p-4 font-bold text-white">مساعد ريندر شات الذكي</td>
                 <td className="p-4 font-mono text-gray-300">200 استفسار</td>
                 <td className="p-4 font-mono text-gold-400 font-bold">2,000 استفسار</td>
                 <td className="p-4 font-mono text-blue-400 font-bold">10,000 استفسار</td>
-                <td className="p-4 font-mono text-purple-400 font-bold">غير محدود</td>
+                <td className="p-4 font-mono text-amber-400 font-bold">غير محدود</td>
               </tr>
               <tr>
                 <td className="p-4 font-bold text-white">عمولة المنصة على أرباح العمل الحر</td>
@@ -382,7 +382,7 @@ export default function PricingPage() {
                 <td className="p-4 text-gray-400">تقديم عادي</td>
                 <td className="p-4 text-gold-400 font-bold">أولوية 2x بالـ AI Match</td>
                 <td className="p-4 text-blue-400 font-bold">نشر غير محدود للوظائف</td>
-                <td className="p-4 text-purple-400 font-bold">إدارة توظيف مخصصة</td>
+                <td className="p-4 text-amber-400 font-bold">إدارة توظيف مخصصة</td>
               </tr>
             </tbody>
           </table>

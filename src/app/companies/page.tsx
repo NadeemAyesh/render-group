@@ -84,8 +84,8 @@ export default function CompaniesPage() {
             </p>
           </div>
 
-          <div className="glass-card p-8 rounded-3xl border border-purple-500/30 space-y-4">
-            <div className="w-12 h-12 rounded-2xl bg-purple-500/15 text-purple-400 border border-purple-500/30 flex items-center justify-center font-bold">
+          <div className="glass-card p-8 rounded-3xl border border-gold-500/30 space-y-4">
+            <div className="w-12 h-12 rounded-2xl bg-gold-500/15 text-gold-400 border border-gold-500/30 flex items-center justify-center font-bold">
               <span className="material-symbols-outlined text-[26px]">token</span>
             </div>
             <h3 className="text-lg font-bold text-white">مدعومون بـ 12 أداة ذكاء اصطناعي</h3>
@@ -96,7 +96,7 @@ export default function CompaniesPage() {
         </div>
 
         {/* Diaspora Alliance Banner */}
-        <div className="p-8 md:p-12 rounded-3xl bg-gradient-to-r from-blue-950/60 via-dark-900 to-purple-950/60 border border-blue-500/30 flex flex-col lg:flex-row items-center justify-between gap-8">
+        <div className="p-8 md:p-12 rounded-3xl bg-gradient-to-r from-blue-950/60 via-dark-900 to-amber-950/40 border border-gold-500/30 flex flex-col lg:flex-row items-center justify-between gap-8">
           <div className="space-y-4 max-w-2xl">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30 text-xs font-semibold">
               <span className="material-symbols-outlined text-[15px]">handshake</span>

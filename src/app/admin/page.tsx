@@ -22,6 +22,13 @@ import {
   DEFAULT_SITE_CONTENT,
 } from "@/lib/cms-service";
 import {
+  getSiteSettings,
+  saveSiteSettings,
+  resetSiteSettings,
+  SiteSettings,
+  DEFAULT_SITE_SETTINGS,
+} from "@/lib/site-settings-service";
+import {
   getPlans,
   togglePlanStatus,
   createPlan,
@@ -34,7 +41,27 @@ import {
   PricingPlan,
   UserSubscription,
 } from "@/lib/subscription-service";
+import {
+  PERMISSIONS_TREE,
+  SYSTEM_ROLES,
+  DEFAULT_SYSTEM_ROLES,
+  SystemRole,
+  getStoredRoles,
+  saveStoredRoles,
+  toggleRolePermission,
+  setAllRolePermissions,
+  resetRolesToDefaults,
+  getStoredUserOverrides,
+  saveStoredUserOverrides,
+  getUserOverrides,
+  setUserPermissionOverride,
+  resetUserOverrides,
+  UserPermissionOverride,
+} from "@/lib/permissions";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
+import { CoursesAdminSection } from "@/components/admin/CoursesAdminSection";
+import { ActionIconButton } from "@/components/ui/ActionIconButton";
+import { getCourses, getSubmissions } from "@/lib/courses-service";
 
 interface PendingPayout {
   id: string;
@@ -98,7 +125,81 @@ const AI_TOOLS_CATALOG = [
 export default function SuperAdminDashboardPage() {
   const router = useRouter();
   const [activeUser, setActiveUser] = useState<AuthUser | null>(null);
-  const [activeTab, setActiveTab] = useState<"overview" | "users" | "jobs" | "platforms" | "cms" | "escrow" | "subscriptions">("overview");
+  const [activeTab, setActiveTab] = useState<
+    "overview" | "users" | "jobs" | "platforms" | "cms" | "escrow" | "subscriptions" | "permissions" | "courses" | "settings"
+  >("overview");
+  const [pendingSubmissionsCount, setPendingSubmissionsCount] = useState<number>(0);
+  const [coursesCount, setCoursesCount] = useState<number>(0);
+  const [siteSettingsForm, setSiteSettingsForm] = useState<SiteSettings>(DEFAULT_SITE_SETTINGS);
+  const [isSettingsSavedToast, setIsSettingsSavedToast] = useState(false);
+
+  // Permissions RBAC State
+  const [rbacMode, setRbacMode] = useState<"ROLES" | "USER_OVERRIDE">("ROLES");
+  const [selectedRole, setSelectedRole] = useState<string>("CONTENT_EDITOR");
+  const [selectedUserForPerms, setSelectedUserForPerms] = useState<string>("u-talent-ahmed");
+  const [rolesConfig, setRolesConfig] = useState<Record<string, SystemRole>>(DEFAULT_SYSTEM_ROLES);
+  const [userOverrides, setUserOverrides] = useState<Record<string, UserPermissionOverride>>({});
+  const [rbacToast, setRbacToast] = useState<{ message: string; type: "success" | "info" } | null>(null);
+
+  // Initialize and reload RBAC from storage on mount
+  const refreshRbacState = () => {
+    setRolesConfig(getStoredRoles());
+    setUserOverrides(getStoredUserOverrides());
+  };
+
+  const showRbacToast = (message: string, type: "success" | "info" = "success") => {
+    setRbacToast({ message, type });
+    setTimeout(() => {
+      setRbacToast(null);
+    }, 3500);
+  };
+
+  const handleToggleRolePerm = (roleKey: string, permId: string) => {
+    if (rolesConfig[roleKey]?.isSuperAdmin) {
+      showRbacToast("دور مدير النظام العام (Super Admin) يمتلك كافة الصلاحيات بصورة ثابتة لحماية استقرار المنظومة.", "info");
+      return;
+    }
+    const updated = toggleRolePermission(roleKey, permId);
+    setRolesConfig({ ...updated });
+    showRbacToast("تم تحديث صلاحية الدور وحفظها بنجاح!");
+  };
+
+  const handleSetAllRolePerms = (roleKey: string, enableAll: boolean) => {
+    if (rolesConfig[roleKey]?.isSuperAdmin) return;
+    const updated = setAllRolePermissions(roleKey, enableAll);
+    setRolesConfig({ ...updated });
+    showRbacToast(enableAll ? "تم تفعيل كافة الصلاحيات لهذا الدور بنجاح!" : "تم تعطيل كافة الصلاحيات لهذا الدور!");
+  };
+
+  const handleResetRoleDefaults = () => {
+    const updated = resetRolesToDefaults();
+    setRolesConfig({ ...updated });
+    showRbacToast("تمت استعادة الصلاحيات الافتراضية لكافة الأدوار بنجاح!");
+  };
+
+  const handleSetUserOverrideAction = (userId: string, permId: string, action: "inherit" | "grant" | "deny") => {
+    const updated = setUserPermissionOverride(userId, permId, action);
+    setUserOverrides({ ...updated });
+    if (action === "grant") {
+      showRbacToast("تم منح الصلاحية استثنائياً للمستخدم بنجاح (+)");
+    } else if (action === "deny") {
+      showRbacToast("تم سحب وحجب الصلاحية عن هذا المستخدم بنجاح (✕)");
+    } else {
+      showRbacToast("تمت إعادة الصلاحية للوضع الافتراضي لدور المستخدم");
+    }
+  };
+
+  const handleClearUserOverrides = (userId: string) => {
+    const updated = resetUserOverrides(userId);
+    setUserOverrides({ ...updated });
+    showRbacToast("تم مسح كافة الاستثناءات لهذا المستخدم والعودة للافتراضي!");
+  };
+
+  const menuNodes = PERMISSIONS_TREE.filter((p) => p.type === "menu");
+  const getPagesForMenu = (menuId: string) =>
+    PERMISSIONS_TREE.filter((p) => p.type === "page" && p.parent === menuId);
+  const getActionsForPage = (pageId: string) =>
+    PERMISSIONS_TREE.filter((p) => p.type === "action" && p.parent === pageId);
 
   // Payouts State
   const [payouts, setPayouts] = useState<PendingPayout[]>(INITIAL_PAYOUTS);
@@ -199,9 +300,37 @@ export default function SuperAdminDashboardPage() {
       setActiveUser(session);
     }
     refreshUsers();
+    refreshRbacState();
     refreshSubscriptions();
     loadPlatformJobs();
     setCmsForm(getSiteContent());
+    setSiteSettingsForm(getSiteSettings());
+
+    const refreshCourseCounters = () => {
+      try {
+        const cList = getCourses();
+        const sList = getSubmissions();
+        setCoursesCount(cList.length);
+        setPendingSubmissionsCount(sList.filter((s) => s.status === "pending").length);
+      } catch {}
+    };
+
+    refreshCourseCounters();
+    window.addEventListener("renderlancer_courses_change", refreshCourseCounters);
+    window.addEventListener("renderlancer_submissions_change", refreshCourseCounters);
+
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const tab = params.get("tab");
+      if (tab && ["overview", "users", "jobs", "platforms", "cms", "escrow", "subscriptions", "permissions", "courses", "settings"].includes(tab)) {
+        setActiveTab(tab as any);
+      }
+    }
+
+    return () => {
+      window.removeEventListener("renderlancer_courses_change", refreshCourseCounters);
+      window.removeEventListener("renderlancer_submissions_change", refreshCourseCounters);
+    };
   }, []);
 
   const handleLogout = () => {
@@ -221,23 +350,27 @@ export default function SuperAdminDashboardPage() {
     const newStatus = user.status === "ACTIVE" ? "SUSPENDED" : "ACTIVE";
     adminUpdateUser(user.email, { status: newStatus });
     refreshUsers();
+    refreshRbacState();
   };
 
   const handleToggleUserVerification = (user: AuthUser) => {
     const newVerification = !user.verified;
     adminUpdateUser(user.email, { verified: newVerification });
     refreshUsers();
+    refreshRbacState();
   };
 
   const handleRoleChange = (email: string, newRole: AuthRole) => {
     adminUpdateUser(email, { role: newRole });
     refreshUsers();
+    refreshRbacState();
   };
 
   const handleDeleteUser = (email: string) => {
     if (window.confirm(`هل أنت متأكد من حذف الحساب (${email}) نهائياً؟`)) {
       adminDeleteUser(email);
       refreshUsers();
+    refreshRbacState();
     }
   };
 
@@ -260,6 +393,7 @@ export default function SuperAdminDashboardPage() {
 
     registerNewUser(user, newUserPassword);
     refreshUsers();
+    refreshRbacState();
     setIsAddUserModalOpen(false);
     setNewUserEmail("");
     setNewUserName("");
@@ -422,6 +556,23 @@ export default function SuperAdminDashboardPage() {
     refreshSubscriptions();
   };
 
+  // Site Settings Actions
+  const handleSaveSiteSettings = (e: React.FormEvent) => {
+    e.preventDefault();
+    saveSiteSettings(siteSettingsForm);
+    setIsSettingsSavedToast(true);
+    setTimeout(() => setIsSettingsSavedToast(false), 3500);
+  };
+
+  const handleResetSiteSettings = () => {
+    if (typeof window !== "undefined" && window.confirm("هل أنت متأكد من استعادة كافة إعدادات الموقع إلى الحالة الافتراضية؟")) {
+      const reset = resetSiteSettings();
+      setSiteSettingsForm(reset);
+      setIsSettingsSavedToast(true);
+      setTimeout(() => setIsSettingsSavedToast(false), 3500);
+    }
+  };
+
   // Filtered Users
   const filteredUsers = usersList.filter((u) => {
     if (userRoleFilter === "ALL") return true;
@@ -432,16 +583,16 @@ export default function SuperAdminDashboardPage() {
     <div className="min-h-screen bg-dark-950 text-gray-100 flex flex-col md:flex-row font-sans">
       
       {/* ================= SUPER ADMIN METRONIC SIDEBAR ================= */}
-      <aside className="w-full md:w-64 bg-dark-900 border-l border-purple-500/30 flex flex-col justify-between shrink-0">
+      <aside className="w-full md:w-64 bg-dark-900 border-l border-gold-500/20 flex flex-col justify-between shrink-0">
         <div>
-          <div className="h-20 px-6 flex items-center gap-3 border-b border-purple-500/20">
+          <div className="h-20 px-6 flex items-center gap-3 border-b border-gold-500/20">
             <Link href="/admin" className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-purple-600 text-white flex items-center justify-center font-bold shadow-lg shadow-purple-500/20">
+              <div className="w-9 h-9 rounded-xl gold-button-gradient text-dark-950 flex items-center justify-center font-bold shadow-md shadow-gold-500/20">
                 <span className="material-symbols-outlined text-[22px]">admin_panel_settings</span>
               </div>
               <div>
                 <span className="text-base font-bold text-white tracking-tight">
-                  RENDER <span className="text-purple-400">ADMIN</span>
+                  RENDER <span className="gold-gradient-text font-black">ADMIN</span>
                 </span>
                 <span className="block text-[9px] text-gray-400 font-mono -mt-1">
                   Metronic Enterprise Engine
@@ -451,27 +602,27 @@ export default function SuperAdminDashboardPage() {
           </div>
 
           {/* Super Admin User Card */}
-          <div className="p-4 mx-4 my-4 rounded-2xl bg-purple-950/40 border border-purple-500/30 flex items-center justify-between">
+          <div className="p-4 mx-4 my-4 rounded-2xl bg-gold-500/10 border border-gold-500/30 flex items-center justify-between">
             <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-10 h-10 rounded-xl bg-purple-500/20 text-purple-300 border border-purple-400/40 flex items-center justify-center font-bold text-sm shrink-0">
+              <div className="w-10 h-10 rounded-xl gold-button-gradient text-dark-950 border border-gold-400/40 flex items-center justify-center font-bold text-sm shrink-0 shadow-sm">
                 {activeUser?.avatar || "SA"}
               </div>
               <div className="min-w-0">
                 <span className="block text-xs font-bold text-white truncate">
                   {activeUser?.fullName || "المهندس نديم (Super Admin)"}
                 </span>
-                <span className="inline-block text-[9px] px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 font-mono font-bold mt-0.5">
+                <span className="inline-block text-[9px] px-2 py-0.5 rounded-full bg-gold-500/20 text-amber-900 dark:text-gold-300 font-mono font-bold mt-0.5 border border-gold-500/30">
                   SUPER_ADMIN (صلاحيات مطلقة)
                 </span>
               </div>
             </div>
-            <button
+            <ActionIconButton
+              icon="logout"
+              label="تسجيل الخروج"
+              variant="danger"
+              size="sm"
               onClick={handleLogout}
-              title="تسجيل الخروج"
-              className="p-1.5 rounded-lg bg-dark-900 hover:bg-dark-850 text-gray-400 hover:text-red-400 border border-purple-500/30 transition-colors shrink-0"
-            >
-              <span className="material-symbols-outlined text-[16px]">logout</span>
-            </button>
+            />
           </div>
 
           {/* Nav Tabs */}
@@ -480,7 +631,7 @@ export default function SuperAdminDashboardPage() {
               onClick={() => setActiveTab("overview")}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${
                 activeTab === "overview"
-                  ? "bg-purple-500/20 text-purple-300 border border-purple-500/30"
+                  ? "bg-gold-500/15 dark:bg-gold-500/20 text-amber-950 dark:text-gold-200 border border-gold-500/40 shadow-sm font-bold"
                   : "text-gray-300 hover:bg-dark-850 hover:text-white"
               }`}
             >
@@ -492,12 +643,12 @@ export default function SuperAdminDashboardPage() {
               onClick={() => setActiveTab("users")}
               className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all ${
                 activeTab === "users"
-                  ? "bg-purple-500/20 text-purple-300 border border-purple-500/30"
+                  ? "bg-gold-500/15 dark:bg-gold-500/20 text-amber-950 dark:text-gold-200 border border-gold-500/40 shadow-sm font-bold"
                   : "text-gray-300 hover:bg-dark-850 hover:text-white"
               }`}
             >
               <div className="flex items-center gap-3">
-                <span className="material-symbols-outlined text-[18px] text-purple-400">group</span>
+                <span className="material-symbols-outlined text-[18px] text-gold-500">group</span>
                 <span>إدارة حسابات المستخدمين</span>
               </div>
               <span className="px-2 py-0.5 rounded-full bg-dark-850 text-gray-300 text-[10px] font-mono">
@@ -509,7 +660,7 @@ export default function SuperAdminDashboardPage() {
               onClick={() => setActiveTab("jobs")}
               className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all ${
                 activeTab === "jobs"
-                  ? "bg-purple-500/20 text-purple-300 border border-purple-500/30"
+                  ? "bg-gold-500/15 dark:bg-gold-500/20 text-amber-950 dark:text-gold-200 border border-gold-500/40 shadow-sm font-bold"
                   : "text-gray-300 hover:bg-dark-850 hover:text-white"
               }`}
             >
@@ -523,10 +674,33 @@ export default function SuperAdminDashboardPage() {
             </button>
 
             <button
+              onClick={() => setActiveTab("courses")}
+              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all ${
+                activeTab === "courses"
+                  ? "bg-gold-500/15 dark:bg-gold-500/20 text-amber-950 dark:text-gold-200 border border-gold-500/40 shadow-sm font-bold"
+                  : "text-gray-300 hover:bg-dark-850 hover:text-white"
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <span className="material-symbols-outlined text-[18px] text-amber-400">school</span>
+                <span>إدارة الدورات والتكليفات</span>
+              </div>
+              {pendingSubmissionsCount > 0 ? (
+                <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[10px] font-mono font-bold animate-pulse">
+                  {pendingSubmissionsCount} تكليف
+                </span>
+              ) : (
+                <span className="px-2 py-0.5 rounded-full bg-dark-850 text-gray-300 text-[10px] font-mono">
+                  {coursesCount} دورات
+                </span>
+              )}
+            </button>
+
+            <button
               onClick={() => setActiveTab("platforms")}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${
                 activeTab === "platforms"
-                  ? "bg-purple-500/20 text-purple-300 border border-purple-500/30"
+                  ? "bg-gold-500/15 dark:bg-gold-500/20 text-amber-950 dark:text-gold-200 border border-gold-500/40 shadow-sm font-bold"
                   : "text-gray-300 hover:bg-dark-850 hover:text-white"
               }`}
             >
@@ -538,7 +712,7 @@ export default function SuperAdminDashboardPage() {
               onClick={() => setActiveTab("subscriptions")}
               className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all ${
                 activeTab === "subscriptions"
-                  ? "bg-purple-500/20 text-purple-300 border border-purple-500/30"
+                  ? "bg-gold-500/15 dark:bg-gold-500/20 text-amber-950 dark:text-gold-200 border border-gold-500/40 shadow-sm font-bold"
                   : "text-gray-300 hover:bg-dark-850 hover:text-white"
               }`}
             >
@@ -555,7 +729,7 @@ export default function SuperAdminDashboardPage() {
               onClick={() => setActiveTab("cms")}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${
                 activeTab === "cms"
-                  ? "bg-purple-500/20 text-purple-300 border border-purple-500/30"
+                  ? "bg-gold-500/15 dark:bg-gold-500/20 text-amber-950 dark:text-gold-200 border border-gold-500/40 shadow-sm font-bold"
                   : "text-gray-300 hover:bg-dark-850 hover:text-white"
               }`}
             >
@@ -567,7 +741,7 @@ export default function SuperAdminDashboardPage() {
               onClick={() => setActiveTab("escrow")}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${
                 activeTab === "escrow"
-                  ? "bg-purple-500/20 text-purple-300 border border-purple-500/30"
+                  ? "bg-gold-500/15 dark:bg-gold-500/20 text-amber-950 dark:text-gold-200 border border-gold-500/40 shadow-sm font-bold"
                   : "text-gray-300 hover:bg-dark-850 hover:text-white"
               }`}
             >
@@ -575,18 +749,44 @@ export default function SuperAdminDashboardPage() {
               <span>الضمان المالي وسحوبات فلسطين</span>
             </button>
 
-            <Link
-              href="/admin/permissions"
-              className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-300 hover:bg-dark-850 hover:text-white transition-colors"
+            <button
+              onClick={() => setActiveTab("permissions")}
+              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all ${
+                activeTab === "permissions"
+                  ? "bg-amber-500/15 dark:bg-amber-500/20 text-amber-950 dark:text-amber-200 border border-amber-500/40 font-bold shadow-xs"
+                  : "text-slate-700 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-dark-850 hover:text-slate-950 dark:hover:text-white"
+              }`}
             >
-              <span className="material-symbols-outlined text-[18px] text-purple-400">account_tree</span>
-              <span>شجرة الصلاحيات (RBAC)</span>
-            </Link>
+              <div className="flex items-center gap-3">
+                <span className="material-symbols-outlined text-[18px] text-amber-500">admin_panel_settings</span>
+                <span>إدارة الصلاحيات</span>
+              </div>
+              <span className="px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-800 dark:text-amber-300 text-[10px] font-mono border border-amber-500/20">
+                RBAC
+              </span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab("settings")}
+              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all ${
+                activeTab === "settings"
+                  ? "bg-amber-500/15 dark:bg-amber-500/20 text-amber-950 dark:text-amber-200 border border-amber-500/40 font-bold shadow-xs"
+                  : "text-slate-700 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-dark-850 hover:text-slate-950 dark:hover:text-white"
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <span className="material-symbols-outlined text-[18px] text-amber-500">settings</span>
+                <span>إعدادات الموقع العامة</span>
+              </div>
+              <span className="px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-800 dark:text-amber-300 text-[10px] font-mono border border-amber-500/20">
+                System
+              </span>
+            </button>
           </nav>
         </div>
 
         {/* Quick Portal Switchers */}
-        <div className="p-4 border-t border-purple-500/20 space-y-2">
+        <div className="p-4 border-t border-gold-500/20 space-y-2">
           <Link
             href="/jobs"
             className="w-full flex items-center justify-center gap-2 py-2 rounded-xl bg-dark-850 text-gray-300 text-xs font-semibold hover:text-white border border-gold-500/20"
@@ -608,7 +808,7 @@ export default function SuperAdminDashboardPage() {
       <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
         
         {/* Top Header */}
-        <header className="h-20 bg-dark-900 border-b border-purple-500/20 px-6 lg:px-8 flex items-center justify-between shrink-0">
+        <header className="h-20 bg-dark-900 border-b border-gold-500/20 px-6 lg:px-8 flex items-center justify-between shrink-0">
           <div>
             <h1 className="text-lg font-bold text-white flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
@@ -618,7 +818,11 @@ export default function SuperAdminDashboardPage() {
                 {activeTab === "jobs" && "إدارة الوظائف والمشاريع المفتوحة في السوق"}
                 {activeTab === "platforms" && "إدارة استوديو الذكاء الاصطناعي وتراخيص الأدوات"}
                 {activeTab === "cms" && "إدارة محتوى الموقع وصفحات المنظومة (CMS)"}
+                {activeTab === "subscriptions" && "إدارة الحزم والاشتراكات وتراخيص الـ AI"}
                 {activeTab === "escrow" && "سجل الضمان المالي وسحوبات أرباح فلسطين"}
+                {activeTab === "permissions" && "شجرة ومصفوفة الصلاحيات الهرمية (RBAC)"}
+                {activeTab === "courses" && "إدارة أكاديمية الدورات ومتابعة وتصحيح التكليفات"}
+                {activeTab === "settings" && "إعدادات وتشغيل المنظومة والموقع العام"}
               </span>
             </h1>
             <span className="text-xs text-gray-400">
@@ -628,13 +832,17 @@ export default function SuperAdminDashboardPage() {
 
           <div className="flex items-center gap-3">
             <ThemeToggle compact />
-            <Link
-              href="/admin/permissions"
-              className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-md transition-colors"
+            <button
+              onClick={() => setActiveTab("permissions")}
+              className={`px-4 py-2 rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-md transition-all ${
+                activeTab === "permissions"
+                  ? "bg-amber-500 text-slate-950 shadow-amber-500/30 ring-2 ring-amber-400 font-black"
+                  : "gold-button-gradient text-dark-950 shadow-gold-500/20 hover:scale-105 active:scale-95"
+              }`}
             >
               <span className="material-symbols-outlined text-[16px]">tune</span>
               <span>مصفوفة الصلاحيات</span>
-            </Link>
+            </button>
             <button
               onClick={handleLogout}
               className="px-3.5 py-2 rounded-xl bg-red-500/15 text-red-300 border border-red-500/30 hover:bg-red-500/25 text-xs font-bold flex items-center gap-1 transition-colors"
@@ -661,10 +869,10 @@ export default function SuperAdminDashboardPage() {
             <div className="space-y-8 animate-fade-in">
               {/* Executive KPIs */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="p-5 rounded-2xl bg-dark-900 border border-purple-500/20 flex flex-col justify-between">
+                <div className="p-5 rounded-2xl bg-dark-900 border border-gold-500/20 flex flex-col justify-between">
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-gray-400 font-semibold">المستخدمين المسجلين</span>
-                    <span className="material-symbols-outlined text-purple-400 text-[22px]">group</span>
+                    <span className="material-symbols-outlined text-gold-400 text-[22px]">group</span>
                   </div>
                   <div className="mt-3">
                     <span className="text-2xl font-bold text-white">+{usersList.length}</span>
@@ -672,7 +880,7 @@ export default function SuperAdminDashboardPage() {
                   </div>
                 </div>
 
-                <div className="p-5 rounded-2xl bg-dark-900 border border-purple-500/20 flex flex-col justify-between">
+                <div className="p-5 rounded-2xl bg-dark-900 border border-emerald-500/20 flex flex-col justify-between">
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-gray-400 font-semibold">حجم السيولة في الضمان (Escrow)</span>
                     <span className="material-symbols-outlined text-emerald-400 text-[22px]">lock</span>
@@ -683,7 +891,7 @@ export default function SuperAdminDashboardPage() {
                   </div>
                 </div>
 
-                <div className="p-5 rounded-2xl bg-dark-900 border border-purple-500/20 flex flex-col justify-between">
+                <div className="p-5 rounded-2xl bg-dark-900 border border-blue-500/20 flex flex-col justify-between">
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-gray-400 font-semibold">الوظائف والفرص المفتوحة</span>
                     <span className="material-symbols-outlined text-blue-400 text-[22px]">work</span>
@@ -696,7 +904,7 @@ export default function SuperAdminDashboardPage() {
                   </div>
                 </div>
 
-                <div className="p-5 rounded-2xl bg-dark-900 border border-purple-500/20 flex flex-col justify-between">
+                <div className="p-5 rounded-2xl bg-dark-900 border border-gold-500/20 flex flex-col justify-between">
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-gray-400 font-semibold">استهلاك أدوات الـ AI الموحدة</span>
                     <span className="material-symbols-outlined text-gold-400 text-[22px]">token</span>
@@ -712,12 +920,12 @@ export default function SuperAdminDashboardPage() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div
                   onClick={() => setActiveTab("users")}
-                  className="p-6 rounded-2xl bg-dark-900 border border-purple-500/25 hover:border-purple-500/60 transition-all cursor-pointer space-y-3 group"
+                  className="p-6 rounded-2xl bg-dark-900 border border-gold-500/25 hover:border-gold-500/60 transition-all cursor-pointer space-y-3 group"
                 >
-                  <div className="w-12 h-12 rounded-xl bg-purple-500/20 text-purple-400 flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <div className="w-12 h-12 rounded-xl bg-gold-500/15 text-gold-400 border border-gold-500/30 flex items-center justify-center group-hover:scale-110 transition-transform">
                     <span className="material-symbols-outlined text-[26px]">manage_accounts</span>
                   </div>
-                  <h3 className="text-base font-bold text-white group-hover:text-purple-300 transition-colors">
+                  <h3 className="text-base font-bold text-white group-hover:text-gold-300 transition-colors">
                     إدارة حسابات المستخدمين
                   </h3>
                   <p className="text-xs text-gray-400 leading-relaxed">
@@ -761,14 +969,14 @@ export default function SuperAdminDashboardPage() {
           {/* ================= TAB 2: USERS MANAGEMENT ================= */}
           {activeTab === "users" && (
             <div className="space-y-6 animate-fade-in">
-              <div className="p-6 rounded-2xl bg-dark-900 border border-purple-500/30 space-y-4">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-purple-500/20">
+              <div className="p-6 rounded-2xl bg-white dark:bg-dark-900 border border-slate-200 dark:border-gold-500/30 shadow-md space-y-5">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-200 dark:border-gold-500/20">
                   <div>
-                    <h3 className="text-base font-bold text-white flex items-center gap-2">
-                      <span className="material-symbols-outlined text-purple-400 text-[22px]">manage_accounts</span>
+                    <h3 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
+                      <span className="material-symbols-outlined text-amber-600 dark:text-gold-400 text-[24px]">manage_accounts</span>
                       <span>سجل وإدارة حسابات المستخدمين الشامل</span>
                     </h3>
-                    <p className="text-xs text-gray-400 mt-0.5">
+                    <p className="text-xs text-slate-500 dark:text-gray-400 font-medium mt-0.5">
                       التحكم بحسابات المستقلين، الشركات، ومحرري المحتوى، مع إدارة التوثيق وتجميد الحسابات
                     </p>
                   </div>
@@ -776,103 +984,108 @@ export default function SuperAdminDashboardPage() {
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => setIsAddUserModalOpen(true)}
-                      className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-md"
+                      className="px-4 py-2.5 rounded-xl gold-button-gradient text-dark-950 font-black text-xs flex items-center gap-1.5 shadow-md shadow-gold-500/20 hover:scale-105 active:scale-95 transition-all border border-amber-500/40"
                     >
-                      <span className="material-symbols-outlined text-[16px]">person_add</span>
+                      <span className="material-symbols-outlined text-[18px]">person_add</span>
                       <span>+ إضافة مستخدم جديد</span>
                     </button>
                   </div>
                 </div>
 
-                {/* Filters Bar */}
-                <div className="flex items-center gap-2 text-xs">
-                  <span className="text-gray-400 font-semibold">تصفية حسب الدور:</span>
-                  {["ALL", "JOB_SEEKER", "EMPLOYER", "SUPER_ADMIN", "CONTENT_EDITOR"].map((roleKey) => (
-                    <button
-                      key={roleKey}
-                      onClick={() => setUserRoleFilter(roleKey)}
-                      className={`px-3 py-1 rounded-lg font-bold transition-colors ${
-                        userRoleFilter === roleKey
-                          ? "bg-purple-600 text-white"
-                          : "bg-dark-850 text-gray-400 hover:text-white"
-                      }`}
-                    >
-                      {roleKey === "ALL" && "الكل"}
-                      {roleKey === "JOB_SEEKER" && "مستقلون"}
-                      {roleKey === "EMPLOYER" && "شركات"}
-                      {roleKey === "SUPER_ADMIN" && "مدراء"}
-                      {roleKey === "CONTENT_EDITOR" && "محررون"}
-                    </button>
-                  ))}
+                {/* Filters Bar - Sharp Segmented Control */}
+                <div className="flex flex-wrap items-center gap-2 text-xs">
+                  <span className="text-slate-700 dark:text-gray-300 font-black ml-2">تصفية حسب الدور:</span>
+                  <div className="inline-flex items-center gap-1 p-1 rounded-xl bg-slate-100 dark:bg-dark-950 border border-slate-200 dark:border-dark-800">
+                    {["ALL", "JOB_SEEKER", "EMPLOYER", "SUPER_ADMIN", "CONTENT_EDITOR"].map((roleKey) => (
+                      <button
+                        key={roleKey}
+                        onClick={() => setUserRoleFilter(roleKey)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                          userRoleFilter === roleKey
+                            ? "bg-slate-900 text-white dark:bg-gold-500 dark:text-dark-950 shadow-sm"
+                            : "text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-dark-850"
+                        }`}
+                      >
+                        {roleKey === "ALL" && "الكل"}
+                        {roleKey === "JOB_SEEKER" && "مستقلون"}
+                        {roleKey === "EMPLOYER" && "شركات"}
+                        {roleKey === "SUPER_ADMIN" && "مدراء (Admin)"}
+                        {roleKey === "CONTENT_EDITOR" && "محررون"}
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
                 {/* Users Table */}
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-gold-500/20">
                   <table className="w-full text-right text-xs">
-                    <thead>
-                      <tr className="border-b border-purple-500/20 text-gray-400 pb-2">
-                        <th className="py-2.5 font-semibold">المستخدم</th>
-                        <th className="py-2.5 font-semibold">الدور في المنصة</th>
-                        <th className="py-2.5 font-semibold">الموقع الجغرافي</th>
-                        <th className="py-2.5 font-semibold">حالة الحساب</th>
-                        <th className="py-2.5 font-semibold">التوثيق</th>
-                        <th className="py-2.5 font-semibold">الإجراءات</th>
+                    <thead className="bg-slate-50 dark:bg-dark-950/80 border-b-2 border-slate-200 dark:border-gold-500/20">
+                      <tr className="text-slate-800 dark:text-gray-200 font-black">
+                        <th className="py-3 px-4 font-black">المستخدم</th>
+                        <th className="py-3 px-4 font-black">الدور في المنصة</th>
+                        <th className="py-3 px-4 font-black">الموقع الجغرافي</th>
+                        <th className="py-3 px-4 font-black">حالة الحساب</th>
+                        <th className="py-3 px-4 font-black">التوثيق</th>
+                        <th className="py-3 px-4 font-black">الإجراءات</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-purple-500/10">
+                    <tbody className="divide-y divide-slate-200 dark:divide-gold-500/10 bg-white dark:bg-transparent">
                       {filteredUsers.map((u) => (
-                        <tr key={u.email}>
-                          <td className="py-3.5">
-                            <div className="flex items-center gap-2.5">
-                              <div className="w-8 h-8 rounded-lg bg-dark-850 text-purple-300 border border-purple-500/30 flex items-center justify-center font-bold text-xs">
+                        <tr key={u.email} className="hover:bg-slate-50/70 dark:hover:bg-dark-850/50 transition-colors">
+                          <td className="py-3.5 px-4">
+                            <div className="flex items-center gap-3">
+                              <div className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-dark-850 text-slate-900 dark:text-gold-300 border border-slate-300 dark:border-gold-500/30 flex items-center justify-center font-black text-xs shrink-0 shadow-xs">
                                 {u.avatar || u.fullName.slice(0, 2)}
                               </div>
-                              <div>
-                                <span className="font-bold text-white block">{u.fullName}</span>
-                                <span className="text-[10px] text-gray-400 font-mono">{u.email}</span>
+                              <div className="min-w-0">
+                                <span className="font-bold text-slate-900 dark:text-white block text-xs truncate">{u.fullName}</span>
+                                <span className="text-[11px] text-slate-500 dark:text-gray-400 font-mono block">{u.email}</span>
                               </div>
                             </div>
                           </td>
-                          <td className="py-3.5">
-                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${ROLE_LABELS[u.role]?.badgeClass}`}>
+                          <td className="py-3.5 px-4">
+                            <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black border shadow-xs inline-flex items-center gap-1 ${ROLE_LABELS[u.role]?.badgeClass}`}>
                               {ROLE_LABELS[u.role]?.ar || u.role}
                             </span>
                           </td>
-                          <td className="py-3.5 text-gray-300">{u.location || "فلسطين"}</td>
-                          <td className="py-3.5">
+                          <td className="py-3.5 px-4 text-slate-700 dark:text-gray-300 font-medium text-xs">
+                            {u.location || "فلسطين والشتات"}
+                          </td>
+                          <td className="py-3.5 px-4">
                             <span
-                              className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
+                              className={`px-2.5 py-1 rounded-lg text-[10px] font-black border inline-flex items-center gap-1.5 shadow-xs ${
                                 u.status === "SUSPENDED"
-                                  ? "bg-red-500/15 text-red-300 border-red-500/30"
-                                  : "bg-emerald-500/15 text-emerald-300 border-emerald-500/30"
+                                  ? "bg-red-100 text-red-900 border-red-300 dark:bg-red-500/15 dark:text-red-300 dark:border-red-500/30"
+                                  : "bg-emerald-100 text-emerald-950 border-emerald-300 dark:bg-emerald-500/15 dark:text-emerald-300 dark:border-emerald-500/30"
                               }`}
                             >
+                              <span className={`w-1.5 h-1.5 rounded-full ${u.status === "SUSPENDED" ? "bg-red-600" : "bg-emerald-600 animate-pulse"}`}></span>
                               {u.status === "SUSPENDED" ? "موقوف" : "نشط"}
                             </span>
                           </td>
-                          <td className="py-3.5">
+                          <td className="py-3.5 px-4">
                             <button
                               onClick={() => handleToggleUserVerification(u)}
-                              className={`px-2 py-0.5 rounded-md text-[10px] font-bold border flex items-center gap-1 ${
+                              className={`px-2.5 py-1 rounded-lg text-[10px] font-black border flex items-center gap-1.5 shadow-xs transition-all ${
                                 u.verified
-                                  ? "bg-gold-500/15 text-gold-300 border-gold-500/30"
-                                  : "bg-dark-850 text-gray-500 border-gray-700 hover:text-white"
+                                  ? "bg-amber-100 text-amber-950 border-amber-400 hover:bg-amber-200 dark:bg-gold-500/20 dark:text-gold-200 dark:border-gold-500/40"
+                                  : "bg-slate-100 text-slate-600 border-slate-300 hover:bg-slate-200 hover:text-slate-900 dark:bg-dark-850 dark:text-gray-400 dark:border-gray-700 dark:hover:text-white"
                               }`}
                             >
-                              <span className="material-symbols-outlined text-[13px]">
+                              <span className="material-symbols-outlined text-[14px]">
                                 {u.verified ? "verified" : "check"}
                               </span>
                               <span>{u.verified ? "موثق رسمياً" : "غير موثق"}</span>
                             </button>
                           </td>
-                          <td className="py-3.5">
-                            <div className="flex items-center gap-1.5">
+                          <td className="py-3.5 px-4">
+                            <div className="flex items-center gap-2">
                               <button
                                 onClick={() => handleToggleUserStatus(u)}
-                                className={`px-2 py-1 rounded-lg text-[10px] font-bold ${
+                                className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border transition-colors ${
                                   u.status === "SUSPENDED"
-                                    ? "bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30"
-                                    : "bg-amber-500/15 text-amber-300 hover:bg-amber-500/25"
+                                    ? "bg-emerald-100 text-emerald-900 border-emerald-300 hover:bg-emerald-200 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/30"
+                                    : "bg-amber-50 text-amber-900 border-amber-300 hover:bg-amber-100 dark:bg-amber-500/15 dark:text-amber-300 dark:border-amber-500/30"
                                 }`}
                               >
                                 {u.status === "SUSPENDED" ? "تفعيل" : "إيقاف"}
@@ -880,20 +1093,20 @@ export default function SuperAdminDashboardPage() {
                               <select
                                 value={u.role}
                                 onChange={(e) => handleRoleChange(u.email, e.target.value as AuthRole)}
-                                className="px-1.5 py-1 rounded-lg bg-dark-950 border border-purple-500/30 text-[10px] text-gray-300"
+                                className="px-2 py-1 rounded-lg bg-white dark:bg-dark-950 border border-slate-300 dark:border-gold-500/30 text-[10px] font-bold text-slate-800 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-amber-500"
                               >
                                 <option value="JOB_SEEKER">مستقل</option>
                                 <option value="EMPLOYER">شركة</option>
                                 <option value="CONTENT_EDITOR">محرر</option>
                                 <option value="SUPER_ADMIN">مدير</option>
                               </select>
-                              <button
+                              <ActionIconButton
+                                icon="delete"
+                                label="حذف المستخدم"
+                                variant="danger"
+                                size="xs"
                                 onClick={() => handleDeleteUser(u.email)}
-                                className="p-1 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400"
-                                title="حذف المستخدم"
-                              >
-                                <span className="material-symbols-outlined text-[15px]">delete</span>
-                              </button>
+                              />
                             </div>
                           </td>
                         </tr>
@@ -954,61 +1167,62 @@ export default function SuperAdminDashboardPage() {
                     </button>
                   </div>
                 ) : (
-                  <div className="overflow-x-auto">
+                  <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-blue-500/20">
                     <table className="w-full text-right text-xs">
-                      <thead>
-                        <tr className="border-b border-blue-500/20 text-gray-400 pb-2">
-                          <th className="py-2.5 font-semibold">المشروع / المسمى</th>
-                          <th className="py-2.5 font-semibold">الجهة الناشرة</th>
-                          <th className="py-2.5 font-semibold">الموقع والميزانية</th>
-                          <th className="py-2.5 font-semibold">المدة والتخصص</th>
-                          <th className="py-2.5 font-semibold">الحالة</th>
-                          <th className="py-2.5 font-semibold">الإجراءات</th>
+                      <thead className="bg-slate-50 dark:bg-dark-950/80 border-b-2 border-slate-200 dark:border-blue-500/20">
+                        <tr className="text-slate-800 dark:text-gray-200 font-black">
+                          <th className="py-3 px-4 font-black">المشروع / المسمى</th>
+                          <th className="py-3 px-4 font-black">الجهة الناشرة</th>
+                          <th className="py-3 px-4 font-black">الموقع والميزانية</th>
+                          <th className="py-3 px-4 font-black">المدة والتخصص</th>
+                          <th className="py-3 px-4 font-black">الحالة</th>
+                          <th className="py-3 px-4 font-black">الإجراءات</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-blue-500/10">
+                      <tbody className="divide-y divide-slate-200 dark:divide-blue-500/10 bg-white dark:bg-transparent">
                         {allPlatformJobs.map((job) => (
-                          <tr key={job.id}>
-                            <td className="py-3.5">
-                              <span className="font-bold text-white block">{job.title}</span>
-                              <span className="text-[10px] text-gray-400 line-clamp-1">{job.description}</span>
+                          <tr key={job.id} className="hover:bg-slate-50/70 dark:hover:bg-dark-850/50 transition-colors">
+                            <td className="py-3.5 px-4">
+                              <span className="font-bold text-slate-900 dark:text-white block">{job.title}</span>
+                              <span className="text-[11px] text-slate-500 dark:text-gray-400 line-clamp-1">{job.description}</span>
                             </td>
-                            <td className="py-3.5">
-                              <span className="text-gray-200 font-semibold block">{job.company}</span>
+                            <td className="py-3.5 px-4">
+                              <span className="text-slate-800 dark:text-gray-200 font-bold block">{job.company}</span>
                               {job.postedBy === "SUPER_ADMIN" ? (
-                                <span className="inline-block mt-0.5 text-[9px] px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30 font-bold">
+                                <span className="inline-block mt-0.5 text-[9px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-950 border border-amber-300 dark:bg-gold-500/20 dark:text-gold-200 dark:border-gold-500/40 font-black">
                                   👑 Super Admin موثق
                                 </span>
                               ) : (
-                                <span className="inline-block mt-0.5 text-[9px] px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 font-semibold">
+                                <span className="inline-block mt-0.5 text-[9px] px-2 py-0.5 rounded-full bg-blue-100 text-blue-950 border border-blue-300 dark:bg-blue-500/20 dark:text-blue-200 dark:border-blue-500/40 font-black">
                                   🏢 شركة مسجلة
                                 </span>
                               )}
                             </td>
-                            <td className="py-3.5">
-                              <span className="text-emerald-400 font-mono font-bold block">{job.budget}</span>
-                              <span className="text-[10px] text-gray-500">{job.companyLocation}</span>
+                            <td className="py-3.5 px-4">
+                              <span className="text-emerald-700 dark:text-emerald-400 font-mono font-black text-sm block">{job.budget}</span>
+                              <span className="text-[11px] text-slate-500 dark:text-gray-400">{job.companyLocation}</span>
                             </td>
-                            <td className="py-3.5 text-gray-300">
-                              <span>{job.duration}</span>
-                              <span className="text-[10px] text-gray-500 block">تصنيف: {job.category}</span>
+                            <td className="py-3.5 px-4 text-slate-700 dark:text-gray-300">
+                              <span className="font-bold text-xs">{job.duration}</span>
+                              <span className="text-[10px] text-slate-500 dark:text-gray-400 block font-medium">تصنيف: {job.category}</span>
                             </td>
-                            <td className="py-3.5">
-                              <span className="px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-semibold">
+                            <td className="py-3.5 px-4">
+                              <span className="px-2.5 py-1 rounded-lg bg-emerald-100 text-emerald-950 border border-emerald-300 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/30 text-[10px] font-black inline-flex items-center gap-1.5 shadow-xs">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse"></span>
                                 مفتوح في السوق
                               </span>
                             </td>
-                            <td className="py-3.5">
+                            <td className="py-3.5 px-4">
                               <div className="flex items-center gap-2">
                                 <Link
                                   href="/jobs"
-                                  className="px-2.5 py-1 rounded-lg bg-dark-850 hover:bg-dark-800 text-gold-400 border border-gold-500/20 text-[11px]"
+                                  className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-800 dark:bg-dark-850 dark:hover:bg-dark-800 dark:text-gold-400 border border-slate-300 dark:border-gold-500/20 text-[11px] font-bold"
                                 >
                                   عرض
                                 </Link>
                                 <button
                                   onClick={() => handleAdminDeleteJob(job.id)}
-                                  className="px-2.5 py-1 rounded-lg bg-red-500/15 hover:bg-red-500/25 text-red-300 border border-red-500/30 text-[11px]"
+                                  className="px-2.5 py-1 rounded-lg bg-red-50 hover:bg-red-100 text-red-700 border border-red-300 dark:bg-red-500/15 dark:hover:bg-red-500/25 dark:text-red-300 dark:border-red-500/30 text-[11px] font-bold transition-colors"
                                 >
                                   حذف
                                 </button>
@@ -1388,18 +1602,18 @@ export default function SuperAdminDashboardPage() {
 
           {/* ================= TAB 7: SUBSCRIPTIONS & PLANS MANAGEMENT ================= */}
           {activeTab === "subscriptions" && (
-            <div className="space-y-8">
+            <div className="space-y-6">
               {/* Top Banner & Action */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-amber-500/20">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200 dark:border-dark-800">
                 <div>
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs font-bold mb-1.5">
-                    <span className="material-symbols-outlined text-[15px]">loyalty</span>
-                    <span>منظومة الحزم السحابية وإدارة رصيد الذكاء الاصطناعي (Subscriptions Engine)</span>
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/25 text-amber-800 dark:text-amber-300 text-xs font-bold mb-1.5">
+                    <span className="material-symbols-outlined text-[14px]">loyalty</span>
+                    <span>منظومة الحزم وإدارة استهلاك الـ AI (Subscriptions Engine)</span>
                   </div>
-                  <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                  <h2 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
                     إدارة الاشتراكات، الحزم، وباقة التجربة المجانية (3 أيام)
                   </h2>
-                  <p className="text-xs text-gray-400 mt-0.5">
+                  <p className="text-xs text-slate-500 dark:text-gray-400 mt-0.5">
                     مراقبة رصيد كافة المستخدمين الفوري، تعديل وتمديد الاشتراكات، تفعيل/إلغاء تفعيل الباقات، وشحن الرصيد الإضافي.
                   </p>
                 </div>
@@ -1407,75 +1621,106 @@ export default function SuperAdminDashboardPage() {
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => setIsAddPlanModalOpen(true)}
-                    className="px-4 py-2.5 rounded-xl gold-button-gradient text-dark-950 font-bold text-xs flex items-center gap-1.5 shadow-md hover:scale-105 transition-transform"
+                    className="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs flex items-center gap-1.5 shadow-sm transition-all"
                   >
-                    <span className="material-symbols-outlined text-[16px]">add_circle</span>
+                    <span className="material-symbols-outlined text-[15px]">add_circle</span>
                     <span>+ إضافة باقة جديدة</span>
                   </button>
                   <Link
                     href="/pricing"
                     target="_blank"
-                    className="px-3.5 py-2.5 rounded-xl bg-dark-850 hover:bg-dark-800 text-gold-400 border border-gold-500/30 text-xs font-semibold flex items-center gap-1"
+                    className="px-3.5 py-2 rounded-xl bg-white dark:bg-dark-900 hover:bg-slate-50 dark:hover:bg-dark-850 text-slate-700 dark:text-gray-300 border border-slate-200 dark:border-dark-700 text-xs font-semibold flex items-center gap-1.5 transition-all shadow-2xs"
                   >
-                    <span className="material-symbols-outlined text-[16px]">open_in_new</span>
+                    <span className="material-symbols-outlined text-[15px]">open_in_new</span>
                     <span>معاينة صفحة الأسعار</span>
                   </Link>
                 </div>
               </div>
 
-              {/* KPI Cards Row */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="p-5 rounded-2xl bg-dark-900 border border-amber-500/30 flex flex-col justify-between">
-                  <span className="text-xs text-gray-400 font-semibold">إجمالي المشتركين المسجلين</span>
+              {/* KPI Cards Row - Compact, Sharp & Proportionate */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+                {/* Total Users */}
+                <div className="p-4 rounded-xl bg-white dark:bg-dark-900 border border-slate-200 dark:border-dark-800 shadow-xs flex flex-col justify-between hover:border-slate-300 dark:hover:border-dark-700 transition-all">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-slate-500 dark:text-gray-400 font-semibold">إجمالي المشتركين المسجلين</span>
+                    <div className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-dark-950 border border-slate-200 dark:border-dark-800 flex items-center justify-center text-slate-700 dark:text-gray-300">
+                      <span className="material-symbols-outlined text-[16px]">group</span>
+                    </div>
+                  </div>
                   <div className="mt-2 flex items-baseline justify-between">
-                    <span className="text-3xl font-extrabold font-mono text-white">{subsList.length}</span>
-                    <span className="text-xs text-amber-400 font-bold">مشترك ومستفيد</span>
+                    <span className="text-2xl font-black font-mono text-slate-900 dark:text-white">{subsList.length}</span>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 dark:bg-dark-800 dark:text-gray-300 border border-slate-200 dark:border-dark-700">
+                      مشترك مسجل
+                    </span>
                   </div>
                 </div>
 
-                <div className="p-5 rounded-2xl bg-dark-900 border border-emerald-500/30 flex flex-col justify-between">
-                  <span className="text-xs text-gray-400 font-semibold">مستخدمو التجربة المجانية (3 أيام)</span>
+                {/* Free Trial */}
+                <div className="p-4 rounded-xl bg-white dark:bg-dark-900 border border-slate-200 dark:border-dark-800 shadow-xs flex flex-col justify-between hover:border-emerald-300 dark:hover:border-emerald-800/50 transition-all">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-slate-500 dark:text-gray-400 font-semibold">التجربة المجانية (3 أيام)</span>
+                    <div className="w-7 h-7 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/40 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+                      <span className="material-symbols-outlined text-[16px]">timer</span>
+                    </div>
+                  </div>
                   <div className="mt-2 flex items-baseline justify-between">
-                    <span className="text-3xl font-extrabold font-mono text-emerald-400">
+                    <span className="text-2xl font-black font-mono text-emerald-600 dark:text-emerald-400">
                       {subsList.filter((s) => s.status === "TRIAL").length}
                     </span>
-                    <span className="text-[10px] text-emerald-300 font-bold bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/40">
                       50 صورة + 3 فيديو
                     </span>
                   </div>
                 </div>
 
-                <div className="p-5 rounded-2xl bg-dark-900 border border-purple-500/30 flex flex-col justify-between">
-                  <span className="text-xs text-gray-400 font-semibold">المشتركون النشطون (Paid)</span>
+                {/* Paid Subscribers */}
+                <div className="p-4 rounded-xl bg-white dark:bg-dark-900 border border-slate-200 dark:border-dark-800 shadow-xs flex flex-col justify-between hover:border-amber-300 dark:hover:border-amber-800/50 transition-all">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-slate-500 dark:text-gray-400 font-semibold">المشتركون النشطون (Paid)</span>
+                    <div className="w-7 h-7 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/40 flex items-center justify-center text-amber-600 dark:text-amber-400">
+                      <span className="material-symbols-outlined text-[16px]">verified</span>
+                    </div>
+                  </div>
                   <div className="mt-2 flex items-baseline justify-between">
-                    <span className="text-3xl font-extrabold font-mono text-purple-300">
+                    <span className="text-2xl font-black font-mono text-amber-600 dark:text-amber-400">
                       {subsList.filter((s) => s.status === "ACTIVE").length}
                     </span>
-                    <span className="text-xs text-purple-400 font-bold">باقات مدفوعة</span>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300 border border-amber-200 dark:border-amber-800/40">
+                      باقات مدفوعة
+                    </span>
                   </div>
                 </div>
 
-                <div className="p-5 rounded-2xl bg-dark-900 border border-gold-500/30 flex flex-col justify-between">
-                  <span className="text-xs text-gray-400 font-semibold">الإيراد الشهري التقديري (MRR)</span>
+                {/* MRR */}
+                <div className="p-4 rounded-xl bg-white dark:bg-dark-900 border border-slate-200 dark:border-dark-800 shadow-xs flex flex-col justify-between hover:border-slate-300 dark:hover:border-dark-700 transition-all">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-slate-500 dark:text-gray-400 font-semibold">الإيراد الشهري (MRR)</span>
+                    <div className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-dark-950 border border-slate-200 dark:border-dark-800 flex items-center justify-center text-slate-700 dark:text-gray-300">
+                      <span className="material-symbols-outlined text-[16px]">payments</span>
+                    </div>
+                  </div>
                   <div className="mt-2 flex items-baseline justify-between">
-                    <span className="text-3xl font-extrabold font-mono gold-gradient-text">
+                    <span className="text-2xl font-black font-mono text-slate-900 dark:text-white">
                       ${subsList.filter((s) => s.status === "ACTIVE").reduce((acc, curr) => acc + (curr.price || 0), 0)}
                     </span>
-                    <span className="text-[10px] text-gray-400">شهرياً عبر البنوك والكريبتو</span>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 dark:bg-dark-800 dark:text-gray-300 border border-slate-200 dark:border-dark-700">
+                      شهرياً
+                    </span>
                   </div>
                 </div>
               </div>
 
               {/* ============ SUB-SECTION 1: USER SUBSCRIPTIONS MONITORING ============ */}
-              <div className="p-6 rounded-3xl bg-dark-900 border border-amber-500/25 space-y-5">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-3 border-b border-amber-500/15">
+              <div className="rounded-xl bg-white dark:bg-dark-900 border border-slate-200 dark:border-dark-800 shadow-xs overflow-hidden">
+                {/* Header & Controls Toolbar */}
+                <div className="p-4 border-b border-slate-200 dark:border-dark-800 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
                   <div>
-                    <h3 className="text-base font-bold text-white flex items-center gap-2">
-                      <span className="material-symbols-outlined text-amber-400 text-[20px]">manage_accounts</span>
+                    <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                      <span className="material-symbols-outlined text-amber-500 text-[18px]">manage_accounts</span>
                       <span>سجل ومراقبة اشتراكات المستخدمين الحية</span>
                     </h3>
-                    <p className="text-xs text-gray-400">
-                      متابعة استهلاك الصور والفيديوهات لكل مستخدم، وتمديد الأيام وشحن الرصيد والترقية الفورية
+                    <p className="text-xs text-slate-500 dark:text-gray-400 mt-0.5">
+                      متابعة استهلاك الصور والفيديوهات، تمديد الصلاحية وشحن الرصيد والترقية الفورية.
                     </p>
                   </div>
 
@@ -1487,31 +1732,38 @@ export default function SuperAdminDashboardPage() {
                         placeholder="ابحث بالاسم أو البريد أو الباقة..."
                         value={subSearchQuery}
                         onChange={(e) => setSubSearchQuery(e.target.value)}
-                        className="px-3 py-1.5 pr-8 rounded-xl bg-dark-950 border border-amber-500/30 text-xs text-white placeholder:text-gray-500 focus:outline-none w-52"
+                        className="h-8 px-3 pr-8 rounded-lg bg-slate-50 dark:bg-dark-950 border border-slate-200 dark:border-dark-700 text-xs text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-amber-500 focus:bg-white dark:focus:bg-dark-900 w-52 sm:w-60 transition-all"
                       />
-                      <span className="material-symbols-outlined absolute right-2.5 top-2 text-gray-500 text-[16px]">
+                      <span className="material-symbols-outlined absolute right-2.5 top-2 text-slate-400 text-[15px]">
                         search
                       </span>
                     </div>
 
-                    <div className="flex items-center gap-1 bg-dark-950 p-1 rounded-xl border border-amber-500/20">
+                    <div className="inline-flex items-center gap-0.5 bg-slate-100 dark:bg-dark-950 p-1 rounded-lg border border-slate-200 dark:border-dark-800">
                       {[
-                        { id: "ALL", label: "الكل" },
-                        { id: "ACTIVE", label: "نشط" },
-                        { id: "TRIAL", label: "تجريبي (3 أيام)" },
-                        { id: "EXPIRED", label: "منتهي" },
-                        { id: "SUSPENDED", label: "معلق" },
+                        { id: "ALL", label: "الكل", count: subsList.length },
+                        { id: "ACTIVE", label: "نشط", count: subsList.filter((s) => s.status === "ACTIVE").length },
+                        { id: "TRIAL", label: "تجريبي", count: subsList.filter((s) => s.status === "TRIAL").length },
+                        { id: "EXPIRED", label: "منتهي", count: subsList.filter((s) => s.status === "EXPIRED").length },
+                        { id: "SUSPENDED", label: "معلق", count: subsList.filter((s) => s.status === "SUSPENDED").length },
                       ].map((tab) => (
                         <button
                           key={tab.id}
                           onClick={() => setSubStatusFilter(tab.id)}
-                          className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all ${
+                          className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition-all flex items-center gap-1 ${
                             subStatusFilter === tab.id
-                              ? "bg-amber-500 text-dark-950 shadow-sm"
-                              : "text-gray-400 hover:text-white"
+                              ? "bg-white dark:bg-dark-850 text-slate-900 dark:text-white shadow-2xs border border-slate-200/80 dark:border-dark-700"
+                              : "text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white"
                           }`}
                         >
-                          {tab.label}
+                          <span>{tab.label}</span>
+                          <span className={`text-[9px] px-1 rounded-full ${
+                            subStatusFilter === tab.id
+                              ? "bg-amber-100 text-amber-900 dark:bg-amber-950/60 dark:text-amber-300"
+                              : "bg-slate-200/70 text-slate-600 dark:bg-dark-800 dark:text-gray-400"
+                          }`}>
+                            {tab.count}
+                          </span>
                         </button>
                       ))}
                     </div>
@@ -1522,18 +1774,18 @@ export default function SuperAdminDashboardPage() {
                 <div className="overflow-x-auto">
                   <table className="w-full text-right text-xs">
                     <thead>
-                      <tr className="border-b border-amber-500/20 text-gray-400 pb-2">
-                        <th className="py-3 font-semibold">المستخدم</th>
-                        <th className="py-3 font-semibold">الباقة ودورة الدفع</th>
-                        <th className="py-3 font-semibold">الحالة</th>
-                        <th className="py-3 font-semibold">الأيام المتبقية</th>
-                        <th className="py-3 font-semibold">استهلاك الصور 4K</th>
-                        <th className="py-3 font-semibold">استهلاك الفيديو</th>
-                        <th className="py-3 font-semibold">وسيلة الدفع</th>
-                        <th className="py-3 font-semibold text-center">تحكم Super Admin</th>
+                      <tr className="bg-slate-50 dark:bg-dark-950/80 border-b border-slate-200 dark:border-dark-800 text-slate-700 dark:text-gray-300 font-bold text-[11px]">
+                        <th className="py-2.5 px-3">المستخدم</th>
+                        <th className="py-2.5 px-3">الباقة ودورة الدفع</th>
+                        <th className="py-2.5 px-3">الحالة</th>
+                        <th className="py-2.5 px-3">الصلاحية المتبقية</th>
+                        <th className="py-2.5 px-3">استهلاك الصور (4K)</th>
+                        <th className="py-2.5 px-3">استهلاك الفيديو</th>
+                        <th className="py-2.5 px-3">وسيلة الدفع</th>
+                        <th className="py-2.5 px-3 text-center">تحكم Super Admin</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-amber-500/10">
+                    <tbody className="divide-y divide-slate-100 dark:divide-dark-800/60 bg-white dark:bg-transparent">
                       {subsList
                         .filter((sub) => {
                           const matchesStatus = subStatusFilter === "ALL" || sub.status === subStatusFilter;
@@ -1544,61 +1796,79 @@ export default function SuperAdminDashboardPage() {
                           return matchesStatus && matchesSearch;
                         })
                         .map((sub) => (
-                          <tr key={sub.id} className="hover:bg-dark-850/50 transition-colors">
-                            {/* User */}
-                            <td className="py-3.5">
-                              <span className="font-bold text-white block">{sub.userName}</span>
-                              <span className="text-[10px] text-gray-400 font-mono block">{sub.userEmail}</span>
-                              <span className="text-[9px] text-amber-400 font-semibold">{sub.userRole}</span>
+                          <tr key={sub.id} className="hover:bg-slate-50/80 dark:hover:bg-dark-850/50 transition-colors">
+                            {/* User Info */}
+                            <td className="py-2.5 px-3">
+                              <div className="flex items-center gap-2.5">
+                                <div className="w-7 h-7 rounded-lg bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-300 border border-amber-200/80 dark:border-amber-800/40 font-bold text-xs flex items-center justify-center shrink-0">
+                                  {sub.userName.slice(0, 1)}
+                                </div>
+                                <div className="min-w-0">
+                                  <span className="font-bold text-slate-900 dark:text-white block text-xs truncate">{sub.userName}</span>
+                                  <span className="text-[10px] text-slate-500 dark:text-gray-400 font-mono block">{sub.userEmail}</span>
+                                  <span className="text-[9px] font-semibold text-slate-400 dark:text-gray-500">{sub.userRole}</span>
+                                </div>
+                              </div>
                             </td>
 
-                            {/* Plan */}
-                            <td className="py-3.5">
-                              <span className="font-bold text-white block">{sub.planName}</span>
-                              <span className="text-[10px] text-gray-400">
+                            {/* Plan & Cycle */}
+                            <td className="py-2.5 px-3">
+                              <span className="font-bold text-slate-900 dark:text-white block text-xs">{sub.planName}</span>
+                              <span className="text-[10px] text-slate-500 dark:text-gray-400 font-mono font-medium">
                                 {sub.billingCycle === "trial" ? "تجربة 3 أيام مجانية" : `$${sub.price} (${sub.billingCycle})`}
                               </span>
                             </td>
 
                             {/* Status */}
-                            <td className="py-3.5">
+                            <td className="py-2.5 px-3">
                               <span
-                                className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
+                                className={`px-2 py-0.5 rounded-md text-[10px] font-bold border inline-flex items-center gap-1.5 shadow-2xs ${
                                   sub.status === "ACTIVE"
-                                    ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/30"
+                                    ? "bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/40"
                                     : sub.status === "TRIAL"
-                                    ? "bg-amber-500/15 text-amber-300 border-amber-500/30"
+                                    ? "bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/40"
                                     : sub.status === "EXPIRED"
-                                    ? "bg-gray-700/50 text-gray-400 border-gray-600"
-                                    : "bg-red-500/15 text-red-300 border-red-500/30"
+                                    ? "bg-slate-100 text-slate-700 border-slate-200 dark:bg-dark-800 dark:text-gray-400 dark:border-dark-700"
+                                    : "bg-red-50 text-red-800 border-red-200 dark:bg-red-950/40 dark:text-red-300 dark:border-red-800/40"
                                 }`}
                               >
-                                {sub.status === "ACTIVE"
-                                  ? "نشط ومعتمد"
-                                  : sub.status === "TRIAL"
-                                  ? "تجربة 3 أيام"
-                                  : sub.status === "EXPIRED"
-                                  ? "منتهي الصلاحية"
-                                  : "معلّق"}
+                                <span className={`w-1.5 h-1.5 rounded-full ${
+                                  sub.status === "ACTIVE"
+                                    ? "bg-emerald-500"
+                                    : sub.status === "TRIAL"
+                                    ? "bg-amber-500"
+                                    : sub.status === "EXPIRED"
+                                    ? "bg-slate-400"
+                                    : "bg-red-500"
+                                }`} />
+                                <span>
+                                  {sub.status === "ACTIVE"
+                                    ? "نشط ومعتمد"
+                                    : sub.status === "TRIAL"
+                                    ? "تجربة 3 أيام"
+                                    : sub.status === "EXPIRED"
+                                    ? "منتهي الصلاحية"
+                                    : "معلّق"}
+                                </span>
                               </span>
                             </td>
 
                             {/* Days remaining */}
-                            <td className="py-3.5 font-mono">
-                              <span className="text-white font-bold block">{sub.daysRemaining} يوم</span>
-                              <span className="text-[10px] text-gray-500">حتى {sub.expiresAt}</span>
+                            <td className="py-2.5 px-3 font-mono">
+                              <span className="text-slate-900 dark:text-white font-bold block text-xs">{sub.daysRemaining} يوم</span>
+                              <span className="text-[10px] text-slate-500 dark:text-gray-400">حتى {sub.expiresAt}</span>
                             </td>
 
                             {/* Images quota */}
-                            <td className="py-3.5">
-                              <div className="space-y-1 w-28">
-                                <div className="flex justify-between text-[10px] font-mono">
-                                  <span className="text-gray-400">{sub.imagesUsed}</span>
-                                  <span className="text-white font-bold">{sub.imagesTotal}</span>
+                            <td className="py-2.5 px-3">
+                              <div className="space-y-1 w-24">
+                                <div className="flex justify-between text-[10px] font-mono text-slate-600 dark:text-gray-400 font-semibold">
+                                  <span>{sub.imagesUsed}</span>
+                                  <span className="text-slate-900 dark:text-white font-bold">{sub.imagesTotal}</span>
                                 </div>
-                                <div className="w-full bg-dark-950 h-1.5 rounded-full overflow-hidden border border-gold-500/20">
+                                <div className="w-full bg-slate-100 dark:bg-dark-950 h-1.5 rounded-full overflow-hidden border border-slate-200 dark:border-dark-700">
                                   <div
-                                    className="bg-gold-500 h-full rounded-full"
+                                    className="bg-amber-500 h-full rounded-full transition-all"
                                     style={{
                                       width: `${Math.min(100, (sub.imagesUsed / Math.max(1, sub.imagesTotal)) * 100)}%`,
                                     }}
@@ -1608,15 +1878,15 @@ export default function SuperAdminDashboardPage() {
                             </td>
 
                             {/* Videos quota */}
-                            <td className="py-3.5">
-                              <div className="space-y-1 w-24">
-                                <div className="flex justify-between text-[10px] font-mono">
-                                  <span className="text-gray-400">{sub.videosUsed}</span>
-                                  <span className="text-purple-300 font-bold">{sub.videosTotal}</span>
+                            <td className="py-2.5 px-3">
+                              <div className="space-y-1 w-20">
+                                <div className="flex justify-between text-[10px] font-mono text-slate-600 dark:text-gray-400 font-semibold">
+                                  <span>{sub.videosUsed}</span>
+                                  <span className="text-sky-700 dark:text-sky-400 font-bold">{sub.videosTotal}</span>
                                 </div>
-                                <div className="w-full bg-dark-950 h-1.5 rounded-full overflow-hidden border border-purple-500/20">
+                                <div className="w-full bg-slate-100 dark:bg-dark-950 h-1.5 rounded-full overflow-hidden border border-slate-200 dark:border-dark-700">
                                   <div
-                                    className="bg-purple-500 h-full rounded-full"
+                                    className="bg-sky-500 h-full rounded-full transition-all"
                                     style={{
                                       width: `${Math.min(100, (sub.videosUsed / Math.max(1, sub.videosTotal)) * 100)}%`,
                                     }}
@@ -1626,63 +1896,59 @@ export default function SuperAdminDashboardPage() {
                             </td>
 
                             {/* Payment Method */}
-                            <td className="py-3.5">
-                              <span className="text-xs text-gray-300 block">{sub.paymentMethod || "دفع سحابي"}</span>
+                            <td className="py-2.5 px-3">
+                              <span className="text-[11px] text-slate-600 dark:text-gray-400 font-medium block">
+                                {sub.paymentMethod || "دفع سحابي"}
+                              </span>
                             </td>
 
-                            {/* Admin Actions */}
-                            <td className="py-3.5 text-center">
-                              <div className="flex items-center justify-center gap-1.5">
+                            {/* Admin Actions Toolbar */}
+                            <td className="py-2.5 px-3 text-center">
+                              <div className="inline-flex items-center gap-1">
                                 {/* Toggle Status */}
-                                <button
+                                <ActionIconButton
+                                  icon={sub.status === "ACTIVE" || sub.status === "TRIAL" ? "pause" : "play_arrow"}
+                                  label={sub.status === "ACTIVE" || sub.status === "TRIAL" ? "تجميد وتعليق الاشتراك" : "إعادة تفعيل الاشتراك"}
+                                  variant={sub.status === "ACTIVE" || sub.status === "TRIAL" ? "warning" : "success"}
+                                  size="xs"
                                   onClick={() => handleToggleSubStatus(sub.id)}
-                                  title={sub.status === "ACTIVE" || sub.status === "TRIAL" ? "تجميد وتعليق الاشتراك" : "إعادة تفعيل الاشتراك"}
-                                  className={`p-1.5 rounded-lg border text-xs transition-colors ${
-                                    sub.status === "ACTIVE" || sub.status === "TRIAL"
-                                      ? "bg-dark-850 hover:bg-dark-800 text-yellow-400 border-yellow-500/30"
-                                      : "bg-emerald-500/20 text-emerald-300 border-emerald-500/40"
-                                  }`}
-                                >
-                                  <span className="material-symbols-outlined text-[15px]">
-                                    {sub.status === "ACTIVE" || sub.status === "TRIAL" ? "pause" : "play_arrow"}
-                                  </span>
-                                </button>
+                                />
 
                                 {/* Extend Days */}
-                                <button
+                                <ActionIconButton
+                                  icon="more_time"
+                                  label="تمديد فترة الصلاحية بالأيام"
+                                  variant="info"
+                                  size="xs"
                                   onClick={() => {
                                     setSelectedSub(sub);
                                     setIsExtendModalOpen(true);
                                   }}
-                                  title="تمديد فترة الصلاحية بالأيام"
-                                  className="p-1.5 rounded-lg bg-dark-850 hover:bg-dark-800 text-blue-400 border border-blue-500/30 transition-colors"
-                                >
-                                  <span className="material-symbols-outlined text-[15px]">more_time</span>
-                                </button>
+                                />
 
                                 {/* Add Quota */}
-                                <button
+                                <ActionIconButton
+                                  icon="add_circle"
+                                  label="شحن رصيد إضافي (صور وفيديو)"
+                                  variant="success"
+                                  size="xs"
                                   onClick={() => {
                                     setSelectedSub(sub);
                                     setIsAddCreditsModalOpen(true);
                                   }}
-                                  title="شحن رصيد إضافي (صور وفيديو)"
-                                  className="p-1.5 rounded-lg bg-dark-850 hover:bg-dark-800 text-emerald-400 border border-emerald-500/30 transition-colors"
-                                >
-                                  <span className="material-symbols-outlined text-[15px]">add_circle</span>
-                                </button>
+                                />
 
                                 {/* Change Plan */}
-                                <button
+                                <ActionIconButton
+                                  icon="published_with_changes"
+                                  label="ترقية أو تغيير باقة المستخدم"
+                                  variant="neutral"
+                                  size="xs"
                                   onClick={() => {
                                     setSelectedSub(sub);
                                     setIsChangePlanModalOpen(true);
                                   }}
-                                  title="ترقية أو تغيير باقة المستخدم"
-                                  className="p-1.5 rounded-lg bg-dark-850 hover:bg-dark-800 text-purple-400 border border-purple-500/30 transition-colors"
-                                >
-                                  <span className="material-symbols-outlined text-[15px]">published_with_changes</span>
-                                </button>
+                                />
                               </div>
                             </td>
                           </tr>
@@ -1693,104 +1959,104 @@ export default function SuperAdminDashboardPage() {
               </div>
 
               {/* ============ SUB-SECTION 2: PRICING PLANS CATALOG MANAGEMENT ============ */}
-              <div className="p-6 rounded-3xl bg-dark-900 border border-amber-500/25 space-y-5">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-amber-500/15">
+              <div className="rounded-xl bg-white dark:bg-dark-900 border border-slate-200 dark:border-dark-800 shadow-xs p-4 sm:p-5 space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200 dark:border-dark-800">
                   <div>
-                    <h3 className="text-base font-bold text-white flex items-center gap-2">
-                      <span className="material-symbols-outlined text-amber-400 text-[20px]">view_timeline</span>
+                    <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                      <span className="material-symbols-outlined text-amber-500 text-[18px]">view_timeline</span>
                       <span>إدارة باقات وخطط الأسعار (Plan Catalog & Quotas)</span>
                     </h3>
-                    <p className="text-xs text-gray-400">
-                      تفعيل وإلغاء تفعيل الباقات، التحكم في الأسعار والحصص والمزايا المعروضة في صفحة الأسعار العامة
+                    <p className="text-xs text-slate-500 dark:text-gray-400 mt-0.5">
+                      تفعيل وإلغاء تفعيل الباقات، التحكم في الأسعار والحصص والمزايا المعروضة في صفحة الأسعار العامة.
                     </p>
                   </div>
 
                   <button
                     onClick={() => setIsAddPlanModalOpen(true)}
-                    className="px-4 py-2 rounded-xl gold-button-gradient text-dark-950 font-bold text-xs flex items-center gap-1.5 shadow-md"
+                    className="px-3.5 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs flex items-center gap-1.5 shadow-2xs self-start sm:self-auto transition-all"
                   >
-                    <span className="material-symbols-outlined text-[16px]">add</span>
+                    <span className="material-symbols-outlined text-[15px]">add</span>
                     <span>إنشاء خطة جديدة</span>
                   </button>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3.5">
                   {plansList.map((plan) => (
                     <div
                       key={plan.id}
-                      className={`p-5 rounded-2xl border transition-all flex flex-col justify-between gap-4 ${
+                      className={`p-4 rounded-xl border transition-all flex flex-col justify-between gap-3 shadow-xs ${
                         plan.active
-                          ? "bg-dark-950 border-amber-500/30 hover:border-amber-500/60"
-                          : "bg-dark-950/50 border-gray-800 opacity-60"
+                          ? "bg-slate-50/50 dark:bg-dark-950/70 border-slate-200 dark:border-dark-700 hover:border-amber-400/60"
+                          : "bg-slate-100/60 dark:bg-dark-950/30 border-slate-200 dark:border-dark-800 opacity-60"
                       }`}
                     >
-                      <div className="space-y-3">
+                      <div className="space-y-2.5">
                         <div className="flex items-center justify-between">
                           <span
-                            className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
+                            className={`px-2 py-0.5 rounded-md text-[10px] font-bold border ${
                               plan.active
-                                ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/30"
-                                : "bg-red-500/15 text-red-300 border-red-500/30"
+                                ? "bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/40"
+                                : "bg-red-50 text-red-800 border-red-200 dark:bg-red-950/40 dark:text-red-300 dark:border-red-800/40"
                             }`}
                           >
                             {plan.active ? "مفعّلة على الموقع" : "معطّلة / مخفية"}
                           </span>
                           {plan.badge && (
-                            <span className="text-[10px] text-amber-400 font-bold bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
+                            <span className="text-[10px] text-amber-800 dark:text-amber-300 font-bold bg-amber-50 dark:bg-amber-950/40 px-2 py-0.5 rounded-md border border-amber-200 dark:border-amber-800/40">
                               {plan.badge}
                             </span>
                           )}
                         </div>
 
                         <div>
-                          <h4 className="text-sm font-bold text-white">{plan.name}</h4>
-                          <span className="text-[10px] text-gray-500 font-mono block">{plan.nameEn}</span>
+                          <h4 className="text-xs font-bold text-slate-900 dark:text-white">{plan.name}</h4>
+                          <span className="text-[10px] text-slate-400 font-mono block">{plan.nameEn}</span>
                         </div>
 
-                        <div className="pt-2 border-t border-amber-500/15 flex items-baseline justify-between">
-                          <span className="text-xs text-gray-400">السعر الشهري:</span>
-                          <strong className="text-lg font-mono text-emerald-400 font-bold">
+                        <div className="pt-2 border-t border-slate-200 dark:border-dark-800 flex items-baseline justify-between">
+                          <span className="text-xs text-slate-500 dark:text-gray-400">السعر الشهري:</span>
+                          <strong className="text-base font-mono text-emerald-600 dark:text-emerald-400 font-bold">
                             {plan.priceMonthly === 0 ? "مجاني ($0)" : `$${plan.priceMonthly}`}
                           </strong>
                         </div>
 
-                        <div className="space-y-1 text-[11px] text-gray-300 bg-dark-900 p-2.5 rounded-xl border border-amber-500/15">
+                        <div className="space-y-1 text-[11px] bg-white dark:bg-dark-900 p-2.5 rounded-lg border border-slate-200 dark:border-dark-800">
                           <div className="flex justify-between">
-                            <span className="text-gray-400">حصة الصور 4K:</span>
-                            <strong className="text-white font-mono">{plan.imagesQuota} صورة</strong>
+                            <span className="text-slate-500 dark:text-gray-400">حصة الصور 4K:</span>
+                            <strong className="text-slate-900 dark:text-white font-mono">{plan.imagesQuota} صورة</strong>
                           </div>
                           <div className="flex justify-between">
-                            <span className="text-gray-400">الفيديو السينمائي:</span>
-                            <strong className="text-white font-mono">{plan.videosQuota} فيديو</strong>
+                            <span className="text-slate-500 dark:text-gray-400">الفيديو السينمائي:</span>
+                            <strong className="text-slate-900 dark:text-white font-mono">{plan.videosQuota} فيديو</strong>
                           </div>
                           <div className="flex justify-between">
-                            <span className="text-gray-400">المحادثات:</span>
-                            <strong className="text-white font-mono">{plan.chatQuota} شات</strong>
+                            <span className="text-slate-500 dark:text-gray-400">المحادثات:</span>
+                            <strong className="text-slate-900 dark:text-white font-mono">{plan.chatQuota} شات</strong>
                           </div>
                         </div>
                       </div>
 
                       {/* Plan Admin Actions */}
-                      <div className="pt-3 border-t border-amber-500/15 flex items-center justify-between gap-2">
+                      <div className="pt-2.5 border-t border-slate-200 dark:border-dark-800 flex items-center justify-between gap-2">
                         <button
                           onClick={() => handleTogglePlan(plan.id)}
-                          className={`w-full py-2 rounded-xl text-xs font-bold transition-all ${
+                          className={`w-full py-1.5 rounded-lg text-xs font-bold transition-all border ${
                             plan.active
-                              ? "bg-red-500/15 hover:bg-red-500/25 text-red-300 border border-red-500/30"
-                              : "bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40"
+                              ? "bg-red-50 hover:bg-red-100 text-red-800 border-red-200 dark:bg-red-950/30 dark:hover:bg-red-950/50 dark:text-red-300 dark:border-red-800/40"
+                              : "bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-950/30 dark:hover:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800/40"
                           }`}
                         >
                           {plan.active ? "إلغاء التفعيل" : "تفعيل الباقة"}
                         </button>
 
                         {!plan.isTrial && (
-                          <button
+                          <ActionIconButton
+                            icon="delete"
+                            label="حذف الباقة"
+                            variant="danger"
+                            size="xs"
                             onClick={() => handleDeletePlan(plan.id)}
-                            title="حذف الباقة"
-                            className="p-2 rounded-xl bg-dark-850 hover:bg-dark-800 text-gray-400 hover:text-red-400 border border-gray-700 transition-colors"
-                          >
-                            <span className="material-symbols-outlined text-[16px]">delete</span>
-                          </button>
+                          />
                         )}
                       </div>
 
@@ -1802,13 +2068,1170 @@ export default function SuperAdminDashboardPage() {
             </div>
           )}
 
+          {/* ================= TAB 8: 3-TIER HIERARCHICAL RBAC PERMISSIONS TREE ================= */}
+          {activeTab === "permissions" && (() => {
+            const currentUsers = usersList.length > 0 ? usersList : getAllUsersArray();
+            const activeTargetUser = currentUsers.find((u) => u.id === selectedUserForPerms) || currentUsers[0];
+            const activeUserOverride = userOverrides[activeTargetUser?.id || ""] || { granted: [], denied: [] };
+            const targetUserRole = activeTargetUser?.role || "JOB_SEEKER";
+            const targetRoleObj = rolesConfig[targetUserRole] || DEFAULT_SYSTEM_ROLES[targetUserRole];
+            const activeRoleObj = rolesConfig[selectedRole] || DEFAULT_SYSTEM_ROLES[selectedRole] || DEFAULT_SYSTEM_ROLES.SUPER_ADMIN;
+
+            // Helper to get permission evaluation for active target user
+            const evalUserPermission = (permId: string) => {
+              if (activeTargetUser?.role === "SUPER_ADMIN") {
+                return { effective: true, source: "role" as const, isOverride: false };
+              }
+              if (activeUserOverride.denied.includes(permId)) {
+                return { effective: false, source: "denied" as const, isOverride: true };
+              }
+              if (activeUserOverride.granted.includes(permId)) {
+                return { effective: true, source: "granted" as const, isOverride: true };
+              }
+              const inRole = targetRoleObj?.defaultPermissions?.includes(permId);
+              return { effective: Boolean(inRole), source: "role" as const, isOverride: false };
+            };
+
+            return (
+              <div className="space-y-6 animate-fade-in">
+                {/* Header */}
+                <div className="pb-4 border-b border-slate-200 dark:border-dark-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div>
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/25 text-amber-800 dark:text-amber-300 text-xs font-bold mb-1.5">
+                      <span className="material-symbols-outlined text-[15px]">account_tree</span>
+                      <span>منظومة الصلاحيات الشجرية الثلاثية (3-Tier Hierarchical RBAC)</span>
+                    </div>
+                    <h2 className="text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">
+                      إدارة شجرة الصلاحيات والأدوار والتحكم الفردي بالمستخدمين
+                    </h2>
+                    <p className="text-xs text-slate-600 dark:text-gray-400 mt-1">
+                      تحكم هرمي شجري دقيق: <strong>Menu (القوائم)</strong> ➜ <strong>Page (الصفحات)</strong> ➜ <strong>Action (الإجراءات والأزرار)</strong>. تحكم بكافة صلاحيات الأدوار أو امنح استثناءات فردية فورية لأي مستخدم بالاسم.
+                    </p>
+                  </div>
+
+                  {/* Mode Selector Pill */}
+                  <div className="inline-flex p-1 rounded-2xl bg-slate-100 dark:bg-dark-900 border border-slate-200 dark:border-dark-800 shadow-2xs self-start md:self-auto">
+                    <button
+                      type="button"
+                      onClick={() => setRbacMode("ROLES")}
+                      className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
+                        rbacMode === "ROLES"
+                          ? "bg-amber-500 text-slate-950 shadow-sm font-black"
+                          : "text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white"
+                      }`}
+                    >
+                      <span className="material-symbols-outlined text-[16px]">groups</span>
+                      <span>1. إدارة صلاحيات الأدوار (Roles)</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setRbacMode("USER_OVERRIDE")}
+                      className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
+                        rbacMode === "USER_OVERRIDE"
+                          ? "bg-amber-500 text-slate-950 shadow-sm font-black"
+                          : "text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white"
+                      }`}
+                    >
+                      <span className="material-symbols-outlined text-[16px]">person_check</span>
+                      <span>2. استثناءات مستخدم محدد (User Overrides)</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Toast Banner */}
+                {rbacToast && (
+                  <div className={`p-3.5 rounded-xl border flex items-center justify-between text-xs font-bold shadow-xs animate-fade-in ${
+                    rbacToast.type === "info"
+                      ? "bg-blue-50 dark:bg-blue-950/40 border-blue-300 dark:border-blue-800 text-blue-900 dark:text-blue-300"
+                      : "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-800 text-emerald-900 dark:text-emerald-300"
+                  }`}>
+                    <div className="flex items-center gap-2">
+                      <span className="material-symbols-outlined text-[18px]">
+                        {rbacToast.type === "info" ? "info" : "check_circle"}
+                      </span>
+                      <span>{rbacToast.message}</span>
+                    </div>
+                    <span className="text-[10px] px-2 py-0.5 rounded font-mono bg-white/60 dark:bg-dark-900/60">
+                      Live Saved ✓
+                    </span>
+                  </div>
+                )}
+
+                {/* Main RBAC Grid */}
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                  
+                  {/* Right Column: Mode Dependent Context Controls (4 cols) */}
+                  <div className="lg:col-span-4 space-y-5">
+                    
+                    {/* MODE 1: ROLES MANAGEMENT SIDEBAR */}
+                    {rbacMode === "ROLES" && (
+                      <div className="p-5 rounded-2xl bg-white dark:bg-dark-900 border border-slate-200 dark:border-dark-800 shadow-xs space-y-4">
+                        <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-dark-800">
+                          <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                            <span className="material-symbols-outlined text-amber-500 text-[18px]">badge</span>
+                            <span>الأدوار الأساسية في المنظومة</span>
+                          </h3>
+                          <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-100 dark:bg-dark-850 text-slate-600 dark:text-gray-400">
+                            4 Roles
+                          </span>
+                        </div>
+
+                        <p className="text-xs text-slate-500 dark:text-gray-400 leading-relaxed">
+                          اختر دوراً لتعديل الصلاحيات الممنوحة أو المحجوبة عنه من الشجرة على اليسار:
+                        </p>
+
+                        <div className="space-y-2.5">
+                          {Object.keys(rolesConfig).map((roleKey) => {
+                            const role = rolesConfig[roleKey] || DEFAULT_SYSTEM_ROLES[roleKey];
+                            const isSelected = selectedRole === roleKey;
+                            const isSuper = role.isSuperAdmin;
+                            const count = role.defaultPermissions?.length || 0;
+
+                            return (
+                              <button
+                                key={roleKey}
+                                type="button"
+                                onClick={() => setSelectedRole(roleKey)}
+                                className={`w-full text-right p-3.5 rounded-xl border text-xs transition-all flex items-center justify-between ${
+                                  isSelected
+                                    ? "bg-amber-500/15 border-amber-400 dark:border-amber-500 text-slate-950 dark:text-amber-200 font-bold shadow-xs ring-1 ring-amber-400"
+                                    : "bg-slate-50 dark:bg-dark-950/60 border-slate-200 dark:border-dark-800 text-slate-700 dark:text-gray-300 hover:border-amber-400/50 hover:bg-white dark:hover:bg-dark-850"
+                                }`}
+                              >
+                                <div>
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="font-bold text-slate-900 dark:text-white">{role.labelArabic}</span>
+                                    {isSuper && (
+                                      <span className="text-[9px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-800 dark:text-amber-300 font-black">
+                                        SUPER
+                                      </span>
+                                    )}
+                                  </div>
+                                  <span className="text-[10px] text-slate-400 dark:text-gray-400 font-mono mt-0.5 block">
+                                    {role.name}
+                                  </span>
+                                </div>
+
+                                <div className="text-left">
+                                  <span className={`text-[10px] px-2.5 py-1 rounded-full font-bold border block ${
+                                    isSuper
+                                      ? "bg-amber-100 dark:bg-amber-950/50 text-amber-900 dark:text-amber-300 border-amber-300 dark:border-amber-700"
+                                      : count > 0
+                                      ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800"
+                                      : "bg-slate-100 dark:bg-dark-850 text-slate-500 border-slate-200 dark:border-dark-700"
+                                  }`}>
+                                    {isSuper ? "كامل الصلاحيات" : `${count} صلاحية`}
+                                  </span>
+                                </div>
+                              </button>
+                            );
+                          })}
+                        </div>
+
+                        {/* Role Quick Actions */}
+                        <div className="pt-3 border-t border-slate-100 dark:border-dark-800 space-y-2">
+                          <span className="text-[11px] font-bold text-slate-700 dark:text-gray-300 block">
+                            إجراءات سريعة للدور المحدد ({activeRoleObj.labelArabic}):
+                          </span>
+                          
+                          {!activeRoleObj.isSuperAdmin ? (
+                            <div className="grid grid-cols-2 gap-2">
+                              <button
+                                type="button"
+                                onClick={() => handleSetAllRolePerms(selectedRole, true)}
+                                className="px-2.5 py-2 rounded-xl bg-slate-100 hover:bg-emerald-50 text-slate-700 hover:text-emerald-800 border border-slate-200 dark:bg-dark-950 dark:hover:bg-emerald-950/40 dark:text-gray-300 dark:hover:text-emerald-300 dark:border-dark-800 text-[11px] font-bold transition-all flex items-center justify-center gap-1"
+                              >
+                                <span className="material-symbols-outlined text-[14px]">done_all</span>
+                                <span>تفعيل الكل للدور</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleSetAllRolePerms(selectedRole, false)}
+                                className="px-2.5 py-2 rounded-xl bg-slate-100 hover:bg-red-50 text-slate-700 hover:text-red-800 border border-slate-200 dark:bg-dark-950 dark:hover:bg-red-950/40 dark:text-gray-300 dark:hover:text-red-300 dark:border-dark-800 text-[11px] font-bold transition-all flex items-center justify-center gap-1"
+                              >
+                                <span className="material-symbols-outlined text-[14px]">remove_done</span>
+                                <span>تعطيل الكل للدور</span>
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-900 dark:text-amber-300 flex items-center gap-2">
+                              <span className="material-symbols-outlined text-[16px] text-amber-600">lock</span>
+                              <span>صلاحيات الـ Super Admin مقفلة وتمنح كل المزايا دائماً لحماية النظام.</span>
+                            </div>
+                          )}
+
+                          <button
+                            type="button"
+                            onClick={handleResetRoleDefaults}
+                            className="w-full mt-1 px-3 py-2 rounded-xl bg-white dark:bg-dark-900 hover:bg-slate-50 dark:hover:bg-dark-850 text-slate-600 dark:text-gray-400 border border-slate-200 dark:border-dark-700 text-xs font-semibold flex items-center justify-center gap-1.5 transition-all"
+                          >
+                            <span className="material-symbols-outlined text-[15px]">restart_alt</span>
+                            <span>استعادة الصلاحيات الافتراضية لكافة الأدوار</span>
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* MODE 2: USER OVERRIDE MANAGEMENT SIDEBAR */}
+                    {rbacMode === "USER_OVERRIDE" && (
+                      <div className="p-5 rounded-2xl bg-white dark:bg-dark-900 border border-slate-200 dark:border-dark-800 shadow-xs space-y-4">
+                        <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-dark-800">
+                          <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                            <span className="material-symbols-outlined text-blue-500 text-[18px]">person_search</span>
+                            <span>اختر المستخدم للتخصيص</span>
+                          </h3>
+                          <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 font-bold">
+                            User Override
+                          </span>
+                        </div>
+
+                        <p className="text-xs text-slate-500 dark:text-gray-400 leading-relaxed">
+                          اختر أي حساب في المنصة لمنحه صلاحيات إضافية خاصة به (+) أو حجب وسحب صلاحيات منه (✕):
+                        </p>
+
+                        <div>
+                          <label className="block text-xs font-bold text-slate-700 dark:text-gray-300 mb-1.5">
+                            المستخدم المستهدف:
+                          </label>
+                          <select
+                            value={activeTargetUser?.id}
+                            onChange={(e) => setSelectedUserForPerms(e.target.value)}
+                            className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-dark-950 border border-slate-200 dark:border-dark-700 text-xs font-semibold text-slate-900 dark:text-white focus:outline-none focus:border-amber-500 shadow-2xs"
+                          >
+                            {currentUsers.map((u) => (
+                              <option key={u.id} value={u.id}>
+                                {u.fullName} — [{ROLE_LABELS[u.role]?.ar || u.role}] ({u.email})
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
+                        {/* Selected User Details Card */}
+                        {activeTargetUser && (
+                          <div className="p-4 rounded-xl bg-slate-50/80 dark:bg-dark-950/60 border border-slate-200 dark:border-dark-800 space-y-3">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-700 dark:text-amber-300 font-black flex items-center justify-center text-sm border border-amber-500/30 shrink-0">
+                                {activeTargetUser.avatar || activeTargetUser.fullName.slice(0, 2)}
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <h4 className="text-xs font-bold text-slate-900 dark:text-white truncate">
+                                  {activeTargetUser.fullName}
+                                </h4>
+                                <p className="text-[11px] text-slate-500 dark:text-gray-400 font-mono truncate">
+                                  {activeTargetUser.email}
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center justify-between text-xs pt-1">
+                              <span className="text-slate-500 dark:text-gray-400">الدور الأساسي:</span>
+                              <span className={`text-[10px] px-2 py-0.5 rounded-full border ${ROLE_LABELS[activeTargetUser.role]?.badgeClass || "bg-slate-100 text-slate-800"}`}>
+                                {ROLE_LABELS[activeTargetUser.role]?.ar || activeTargetUser.role}
+                              </span>
+                            </div>
+
+                            {/* Counters */}
+                            <div className="grid grid-cols-3 gap-2 pt-2 border-t border-slate-200/70 dark:border-dark-800 text-center">
+                              <div className="p-2 rounded-lg bg-white dark:bg-dark-900 border border-slate-200/70 dark:border-dark-800">
+                                <span className="block text-xs font-black text-slate-800 dark:text-white">
+                                  {targetRoleObj?.defaultPermissions?.length || 0}
+                                </span>
+                                <span className="text-[9px] text-slate-400 block mt-0.5">موروثة بالدور</span>
+                              </div>
+                              <div className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/50">
+                                <span className="block text-xs font-black text-emerald-700 dark:text-emerald-400">
+                                  +{activeUserOverride.granted.length}
+                                </span>
+                                <span className="text-[9px] text-emerald-600 dark:text-emerald-500 block mt-0.5">منح استثنائي</span>
+                              </div>
+                              <div className="p-2 rounded-lg bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800/50">
+                                <span className="block text-xs font-black text-rose-700 dark:text-rose-400">
+                                  -{activeUserOverride.denied.length}
+                                </span>
+                                <span className="text-[9px] text-rose-600 dark:text-rose-500 block mt-0.5">سحب وحجب</span>
+                              </div>
+                            </div>
+
+                            {/* Reset Button */}
+                            {(activeUserOverride.granted.length > 0 || activeUserOverride.denied.length > 0) && (
+                              <button
+                                type="button"
+                                onClick={() => handleClearUserOverrides(activeTargetUser.id)}
+                                className="w-full mt-2 px-3 py-2 rounded-xl bg-white dark:bg-dark-900 hover:bg-rose-50 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-900/60 text-xs font-bold flex items-center justify-center gap-1.5 transition-all"
+                              >
+                                <span className="material-symbols-outlined text-[15px]">clear_all</span>
+                                <span>مسح استثناءات المستخدم والعودة للافتراضي</span>
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                  </div>
+
+                  {/* Left Column: Interactive 3-Tier Tree (8 cols) */}
+                  <div className="lg:col-span-8 space-y-4">
+                    <div className="p-6 rounded-2xl bg-white dark:bg-dark-900 border border-slate-200 dark:border-dark-800 shadow-xs space-y-5">
+                      
+                      {/* Active Mode Banner & Legend */}
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-200 dark:border-dark-800 gap-3">
+                        <div>
+                          <h3 className="text-base font-black text-slate-900 dark:text-white flex items-center gap-2">
+                            <span className="material-symbols-outlined text-amber-500 text-[20px]">account_tree</span>
+                            <span>استعراض شجرة الصلاحيات: Menu ➜ Page ➜ Action</span>
+                          </h3>
+                          <p className="text-xs text-slate-600 dark:text-gray-400 mt-0.5">
+                            {rbacMode === "ROLES" ? (
+                              <>
+                                أنت تعدل الآن دور: <strong className="text-amber-600 dark:text-amber-400 font-bold">{activeRoleObj.labelArabic}</strong> (انقر على الزر للتبديل بين مفعلة ومحجوبة).
+                              </>
+                            ) : (
+                              <>
+                                أنت تخصص الآن استثناءات: <strong className="text-blue-600 dark:text-blue-400 font-bold">{activeTargetUser?.fullName}</strong> (دوره: {ROLE_LABELS[targetUserRole]?.ar}).
+                              </>
+                            )}
+                          </p>
+                        </div>
+
+                        {/* Legend */}
+                        <div className="flex items-center gap-2 text-[11px]">
+                          <span className="px-2 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 font-mono font-bold">
+                            MENU
+                          </span>
+                          <span className="px-2 py-0.5 rounded-md bg-sky-50 dark:bg-sky-950/60 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-800 font-mono font-bold">
+                            PAGE
+                          </span>
+                          <span className="px-2 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 font-mono font-bold">
+                            ACTION
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Tree Nodes List */}
+                      <div className="space-y-4">
+                        {menuNodes.map((menu) => {
+                          const isRoleMenuAllowed = activeRoleObj.defaultPermissions?.includes(menu.id);
+                          const userMenuEval = evalUserPermission(menu.id);
+                          const pages = getPagesForMenu(menu.id);
+
+                          return (
+                            <div
+                              key={menu.id}
+                              className="p-4 rounded-2xl bg-slate-50/70 dark:bg-dark-950/50 border border-slate-200 dark:border-dark-800 space-y-3"
+                            >
+                              {/* Level 1: Menu Header */}
+                              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                <div className="flex items-start gap-3">
+                                  <span className="text-[10px] px-2 py-0.5 rounded bg-indigo-100 dark:bg-indigo-950/80 text-indigo-800 dark:text-indigo-300 border border-indigo-300 dark:border-indigo-800 font-mono font-black mt-0.5">
+                                    MENU
+                                  </span>
+                                  <div>
+                                    <h4 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                      {menu.labelArabic}
+                                      <span className="text-[10px] text-slate-400 font-mono font-normal">
+                                        ({menu.id})
+                                      </span>
+                                    </h4>
+                                    <p className="text-xs text-slate-500 dark:text-gray-400">{menu.description}</p>
+                                  </div>
+                                </div>
+
+                                {/* Controls: Mode dependent */}
+                                <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
+                                  {rbacMode === "ROLES" ? (
+                                    activeRoleObj.isSuperAdmin ? (
+                                      <span className="text-[11px] px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 font-bold flex items-center gap-1">
+                                        <span className="material-symbols-outlined text-[14px]">verified</span>
+                                        <span>مفعلة دائماً (Super Admin)</span>
+                                      </span>
+                                    ) : (
+                                      <button
+                                        type="button"
+                                        onClick={() => handleToggleRolePerm(selectedRole, menu.id)}
+                                        className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-2xs ${
+                                          isRoleMenuAllowed
+                                            ? "bg-emerald-600 hover:bg-emerald-500 text-white"
+                                            : "bg-white hover:bg-slate-100 text-slate-600 dark:bg-dark-850 dark:hover:bg-dark-800 dark:text-gray-300 border border-slate-200 dark:border-dark-700"
+                                        }`}
+                                      >
+                                        <span className="material-symbols-outlined text-[15px]">
+                                          {isRoleMenuAllowed ? "check_circle" : "cancel"}
+                                        </span>
+                                        <span>{isRoleMenuAllowed ? "مفعلة للدور ✓" : "محجوبة عن الدور ✕"}</span>
+                                      </button>
+                                    )
+                                  ) : (
+                                    /* User Override Mode 3-way control */
+                                    <div className="flex items-center gap-2">
+                                      <span className={`text-[10px] px-2.5 py-1 rounded-full font-bold flex items-center gap-1 border ${
+                                        userMenuEval.effective
+                                          ? userMenuEval.source === "granted"
+                                            ? "bg-emerald-100 dark:bg-emerald-950/60 text-emerald-900 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700"
+                                            : "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-800 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800"
+                                          : userMenuEval.source === "denied"
+                                          ? "bg-rose-100 dark:bg-rose-950/60 text-rose-900 dark:text-rose-300 border-rose-300 dark:border-rose-700"
+                                          : "bg-slate-100 dark:bg-dark-850 text-slate-500 dark:text-gray-400 border-slate-200 dark:border-dark-700"
+                                      }`}>
+                                        <span className="material-symbols-outlined text-[13px]">
+                                          {userMenuEval.effective ? "check_circle" : "cancel"}
+                                        </span>
+                                        <span>
+                                          {userMenuEval.effective
+                                            ? (userMenuEval.source === "granted" ? "ممنوحة (+)" : "متاحة بالدور")
+                                            : (userMenuEval.source === "denied" ? "محجوبة (✕)" : "محجوبة بالدور")}
+                                        </span>
+                                      </span>
+
+                                      <div className="inline-flex rounded-xl p-0.5 bg-white dark:bg-dark-900 border border-slate-200 dark:border-dark-700 shadow-2xs">
+                                        <button
+                                          type="button"
+                                          onClick={() => handleSetUserOverrideAction(activeTargetUser.id, menu.id, "inherit")}
+                                          title="إلغاء الاستثناء والاعتماد على دور المستخدم"
+                                          className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-all ${
+                                            !userMenuEval.isOverride
+                                              ? "bg-slate-200 dark:bg-dark-800 text-slate-900 dark:text-white"
+                                              : "text-slate-500 hover:text-slate-800 dark:text-gray-400"
+                                          }`}
+                                        >
+                                          افتراضي
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={() => handleSetUserOverrideAction(activeTargetUser.id, menu.id, "grant")}
+                                          title="منح الصلاحية للمستخدم استثنائياً"
+                                          className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-all ${
+                                            userMenuEval.source === "granted"
+                                              ? "bg-emerald-600 text-white shadow-2xs"
+                                              : "text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40"
+                                          }`}
+                                        >
+                                          + منح
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={() => handleSetUserOverrideAction(activeTargetUser.id, menu.id, "deny")}
+                                          title="سحب وحجب الصلاحية عن المستخدم استثنائياً"
+                                          className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-all ${
+                                            userMenuEval.source === "denied"
+                                              ? "bg-rose-600 text-white shadow-2xs"
+                                              : "text-rose-700 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40"
+                                          }`}
+                                        >
+                                          ✕ سحب
+                                        </button>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* Level 2: Pages under Menu */}
+                              {pages.length > 0 && (
+                                <div className="mr-4 sm:mr-6 space-y-2.5 border-r-2 border-sky-400/40 pr-3 sm:pr-4 mt-2">
+                                  {pages.map((page) => {
+                                    const isRolePageAllowed = activeRoleObj.defaultPermissions?.includes(page.id);
+                                    const userPageEval = evalUserPermission(page.id);
+                                    const actions = getActionsForPage(page.id);
+
+                                    return (
+                                      <div
+                                        key={page.id}
+                                        className="p-3 rounded-xl bg-white dark:bg-dark-900 border border-slate-200 dark:border-dark-800 space-y-2.5 shadow-2xs"
+                                      >
+                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                          <div className="flex items-start gap-2.5">
+                                            <span className="text-[9px] px-2 py-0.5 rounded bg-sky-100 dark:bg-sky-950/80 text-sky-800 dark:text-sky-300 border border-sky-300 dark:border-sky-800 font-mono font-bold mt-0.5">
+                                              PAGE
+                                            </span>
+                                            <div>
+                                              <h5 className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                                {page.labelArabic}
+                                                <span className="text-[10px] text-slate-400 font-mono font-normal">
+                                                  ({page.id})
+                                                </span>
+                                              </h5>
+                                              <p className="text-[11px] text-slate-500 dark:text-gray-400">{page.description}</p>
+                                            </div>
+                                          </div>
+
+                                          <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
+                                            {rbacMode === "ROLES" ? (
+                                              activeRoleObj.isSuperAdmin ? (
+                                                <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 font-bold">
+                                                  متاحة دائماً
+                                                </span>
+                                              ) : (
+                                                <button
+                                                  type="button"
+                                                  onClick={() => handleToggleRolePerm(selectedRole, page.id)}
+                                                  className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all flex items-center gap-1.5 ${
+                                                    isRolePageAllowed
+                                                      ? "bg-emerald-600 hover:bg-emerald-500 text-white"
+                                                      : "bg-slate-100 hover:bg-slate-200 text-slate-600 dark:bg-dark-850 dark:hover:bg-dark-800 dark:text-gray-300 border border-slate-200 dark:border-dark-700"
+                                                  }`}
+                                                >
+                                                  <span className="material-symbols-outlined text-[13px]">
+                                                    {isRolePageAllowed ? "check" : "close"}
+                                                  </span>
+                                                  <span>{isRolePageAllowed ? "مفعلة ✓" : "محجوبة ✕"}</span>
+                                                </button>
+                                              )
+                                            ) : (
+                                              /* User Mode for Page */
+                                              <div className="flex items-center gap-1.5">
+                                                <span className={`text-[9px] px-2 py-0.5 rounded-full font-bold border ${
+                                                  userPageEval.effective
+                                                    ? userPageEval.source === "granted"
+                                                      ? "bg-emerald-100 dark:bg-emerald-950/60 text-emerald-900 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700"
+                                                      : "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-800 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800"
+                                                    : userPageEval.source === "denied"
+                                                    ? "bg-rose-100 dark:bg-rose-950/60 text-rose-900 dark:text-rose-300 border-rose-300 dark:border-rose-700"
+                                                    : "bg-slate-100 dark:bg-dark-850 text-slate-500 dark:text-gray-400 border-slate-200 dark:border-dark-700"
+                                                }`}>
+                                                  {userPageEval.effective
+                                                    ? (userPageEval.source === "granted" ? "ممنوحة (+)" : "متاحة بالدور")
+                                                    : (userPageEval.source === "denied" ? "محجوبة (✕)" : "محجوبة بالدور")}
+                                                </span>
+
+                                                <div className="inline-flex rounded-lg p-0.5 bg-slate-100 dark:bg-dark-950 border border-slate-200 dark:border-dark-800">
+                                                  <button
+                                                    type="button"
+                                                    onClick={() => handleSetUserOverrideAction(activeTargetUser.id, page.id, "inherit")}
+                                                    className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${
+                                                      !userPageEval.isOverride
+                                                        ? "bg-white dark:bg-dark-800 text-slate-900 dark:text-white"
+                                                        : "text-slate-500"
+                                                    }`}
+                                                  >
+                                                    دور
+                                                  </button>
+                                                  <button
+                                                    type="button"
+                                                    onClick={() => handleSetUserOverrideAction(activeTargetUser.id, page.id, "grant")}
+                                                    className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${
+                                                      userPageEval.source === "granted"
+                                                        ? "bg-emerald-600 text-white"
+                                                        : "text-emerald-700 dark:text-emerald-400"
+                                                    }`}
+                                                  >
+                                                    + منح
+                                                  </button>
+                                                  <button
+                                                    type="button"
+                                                    onClick={() => handleSetUserOverrideAction(activeTargetUser.id, page.id, "deny")}
+                                                    className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${
+                                                      userPageEval.source === "denied"
+                                                        ? "bg-rose-600 text-white"
+                                                        : "text-rose-700 dark:text-rose-400"
+                                                    }`}
+                                                  >
+                                                    ✕ سحب
+                                                  </button>
+                                                </div>
+                                              </div>
+                                            )}
+                                          </div>
+                                        </div>
+
+                                        {/* Level 3: Actions under Page */}
+                                        {actions.length > 0 && (
+                                          <div className="mr-3 space-y-1.5 border-r-2 border-emerald-400/40 pr-2.5 mt-1.5">
+                                            {actions.map((act) => {
+                                              const isRoleActAllowed = activeRoleObj.defaultPermissions?.includes(act.id);
+                                              const userActEval = evalUserPermission(act.id);
+
+                                              return (
+                                                <div
+                                                  key={act.id}
+                                                  className="p-2 rounded-lg bg-slate-50 dark:bg-dark-950 border border-slate-200/80 dark:border-dark-800 flex items-center justify-between gap-3 text-xs"
+                                                >
+                                                  <div className="flex items-center gap-2">
+                                                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 font-mono font-bold">
+                                                      ACTION
+                                                    </span>
+                                                    <div>
+                                                      <span className="font-bold text-slate-800 dark:text-gray-200 block text-[11px]">
+                                                        {act.labelArabic}
+                                                      </span>
+                                                      <span className="text-[9px] text-slate-400 font-mono">
+                                                        {act.id}
+                                                      </span>
+                                                    </div>
+                                                  </div>
+
+                                                  <div className="flex items-center gap-2 shrink-0">
+                                                    {rbacMode === "ROLES" ? (
+                                                      activeRoleObj.isSuperAdmin ? (
+                                                        <span className="text-[9px] px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300 font-bold">
+                                                          متاح
+                                                        </span>
+                                                      ) : (
+                                                        <button
+                                                          type="button"
+                                                          onClick={() => handleToggleRolePerm(selectedRole, act.id)}
+                                                          className={`text-[10px] px-2 py-0.5 rounded-md font-bold transition-all flex items-center gap-1 ${
+                                                            isRoleActAllowed
+                                                              ? "bg-emerald-600 hover:bg-emerald-500 text-white"
+                                                              : "bg-white hover:bg-slate-200 text-slate-600 dark:bg-dark-850 dark:hover:bg-dark-800 dark:text-gray-300 border border-slate-200 dark:border-dark-700"
+                                                          }`}
+                                                        >
+                                                          <span>{isRoleActAllowed ? "مسموح ✓" : "معطل ✕"}</span>
+                                                        </button>
+                                                      )
+                                                    ) : (
+                                                      /* User Mode for Action */
+                                                      <div className="flex items-center gap-1.5">
+                                                        <span className={`text-[9px] px-2 py-0.5 rounded-full font-bold border ${
+                                                          userActEval.effective
+                                                            ? userActEval.source === "granted"
+                                                              ? "bg-emerald-100 dark:bg-emerald-950/60 text-emerald-900 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700"
+                                                              : "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-800 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800"
+                                                            : userActEval.source === "denied"
+                                                            ? "bg-rose-100 dark:bg-rose-950/60 text-rose-900 dark:text-rose-300 border-rose-300 dark:border-rose-700"
+                                                            : "bg-slate-100 dark:bg-dark-850 text-slate-500 dark:text-gray-400 border-slate-200 dark:border-dark-700"
+                                                        }`}>
+                                                          {userActEval.effective
+                                                            ? (userActEval.source === "granted" ? "+ ممنوحة" : "مسموح")
+                                                            : (userActEval.source === "denied" ? "✕ محجوبة" : "معطل")}
+                                                        </span>
+
+                                                        <div className="inline-flex rounded-md p-0.5 bg-slate-200/70 dark:bg-dark-900 border border-slate-300 dark:border-dark-700">
+                                                          <button
+                                                            type="button"
+                                                            onClick={() => handleSetUserOverrideAction(activeTargetUser.id, act.id, "inherit")}
+                                                            className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${
+                                                              !userActEval.isOverride
+                                                                ? "bg-white dark:bg-dark-800 text-slate-900 dark:text-white"
+                                                                : "text-slate-500"
+                                                            }`}
+                                                          >
+                                                            دور
+                                                          </button>
+                                                          <button
+                                                            type="button"
+                                                            onClick={() => handleSetUserOverrideAction(activeTargetUser.id, act.id, "grant")}
+                                                            className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${
+                                                              userActEval.source === "granted"
+                                                                ? "bg-emerald-600 text-white"
+                                                                : "text-emerald-700 dark:text-emerald-400"
+                                                            }`}
+                                                          >
+                                                            +
+                                                          </button>
+                                                          <button
+                                                            type="button"
+                                                            onClick={() => handleSetUserOverrideAction(activeTargetUser.id, act.id, "deny")}
+                                                            className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${
+                                                              userActEval.source === "denied"
+                                                                ? "bg-rose-600 text-white"
+                                                                : "text-rose-700 dark:text-rose-400"
+                                                            }`}
+                                                          >
+                                                            ✕
+                                                          </button>
+                                                        </div>
+                                                      </div>
+                                                    )}
+                                                  </div>
+                                                </div>
+                                              );
+                                            })}
+                                          </div>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* ================= TAB 9: COURSES ACADEMY & ASSIGNMENTS REVIEW ================= */}
+          {activeTab === "courses" && (
+            <CoursesAdminSection currentUser={activeUser} />
+          )}
+
+          {/* ================= TAB 10: SITE & SYSTEM SETTINGS ================= */}
+          {activeTab === "settings" && (
+            <div className="space-y-6">
+              {/* Header */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200 dark:border-dark-800">
+                <div>
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/25 text-amber-800 dark:text-amber-300 text-xs font-bold mb-1.5">
+                    <span className="material-symbols-outlined text-[14px]">tune</span>
+                    <span>لوحة التحكم المركزية بإعدادات النظام والموقع</span>
+                  </div>
+                  <h2 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
+                    إعدادات وتشغيل المنظومة والموقع العام (Site & System Settings)
+                  </h2>
+                  <p className="text-xs text-slate-500 dark:text-gray-400 mt-0.5">
+                    إدارة الهوية الرقمية، وضع الصيانة، السياسات المالية، عمولات الضمان Escrow، ومحركات الذكاء الاصطناعي.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleResetSiteSettings}
+                    className="px-3.5 py-2 rounded-xl bg-white dark:bg-dark-900 hover:bg-slate-50 dark:hover:bg-dark-850 text-slate-700 dark:text-gray-300 border border-slate-200 dark:border-dark-700 text-xs font-semibold flex items-center gap-1.5 shadow-2xs transition-all"
+                  >
+                    <span className="material-symbols-outlined text-[15px]">restart_alt</span>
+                    <span>استعادة الافتراضي</span>
+                  </button>
+                  <button
+                    type="submit"
+                    form="site-settings-form"
+                    className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs flex items-center gap-1.5 shadow-sm transition-all"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">save</span>
+                    <span>حفظ كافة الإعدادات فوراً</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Success Toast Banner */}
+              {isSettingsSavedToast && (
+                <div className="p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800/60 text-emerald-900 dark:text-emerald-300 text-xs font-bold flex items-center justify-between shadow-xs animate-fade-in">
+                  <div className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-[18px] text-emerald-600 dark:text-emerald-400">check_circle</span>
+                    <span>تم حفظ كافة إعدادات الموقع وتحديث التطبيق السحابي فورياً بنجاح!</span>
+                  </div>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-200/60 dark:bg-emerald-900/60 text-emerald-950 dark:text-emerald-200">
+                    Live Synced ✓
+                  </span>
+                </div>
+              )}
+
+              <form id="site-settings-form" onSubmit={handleSaveSiteSettings} className="space-y-6">
+                
+                {/* 1. Operation Switches & Toggles */}
+                <div className="p-5 rounded-xl bg-white dark:bg-dark-900 border border-slate-200 dark:border-dark-800 shadow-xs space-y-4">
+                  <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-dark-800">
+                    <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                      <span className="material-symbols-outlined text-amber-500 text-[18px]">power_settings_new</span>
+                      <span>تشغيل المنظومة والمفاتيح الحية (Live System Controls)</span>
+                    </h3>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-slate-100 dark:bg-dark-800 text-slate-600 dark:text-gray-300 border border-slate-200 dark:border-dark-700">
+                      Real-Time Switches
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+                    {/* Maintenance Mode */}
+                    <div className={`p-3.5 rounded-xl border transition-all ${
+                      siteSettingsForm.maintenanceMode
+                        ? "bg-amber-500/10 border-amber-500/40 dark:bg-amber-950/30"
+                        : "bg-slate-50 dark:bg-dark-950/70 border-slate-200 dark:border-dark-800"
+                    }`}>
+                      <label className="flex items-start justify-between cursor-pointer gap-2">
+                        <div>
+                          <span className="text-xs font-bold text-slate-900 dark:text-white block">وضع الصيانة العام</span>
+                          <span className="text-[11px] text-slate-500 dark:text-gray-400 mt-0.5 block">
+                            توجيه الزوار لصفحة الصيانة المؤقتة
+                          </span>
+                        </div>
+                        <input
+                          type="checkbox"
+                          checked={siteSettingsForm.maintenanceMode}
+                          onChange={(e) => setSiteSettingsForm({ ...siteSettingsForm, maintenanceMode: e.target.checked })}
+                          className="w-4 h-4 text-amber-600 rounded focus:ring-amber-500 border-slate-300 mt-0.5 cursor-pointer"
+                        />
+                      </label>
+                      {siteSettingsForm.maintenanceMode && (
+                        <div className="mt-2.5 pt-2 border-t border-amber-500/20">
+                          <input
+                            type="text"
+                            value={siteSettingsForm.maintenanceNotice}
+                            onChange={(e) => setSiteSettingsForm({ ...siteSettingsForm, maintenanceNotice: e.target.value })}
+                            placeholder="رسالة الصيانة المعروضة..."
+                            className="w-full px-2.5 py-1.5 rounded-lg bg-white dark:bg-dark-900 border border-amber-500/30 text-xs text-slate-900 dark:text-white"
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* New User Registrations */}
+                    <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-dark-950/70 border border-slate-200 dark:border-dark-800">
+                      <label className="flex items-start justify-between cursor-pointer gap-2">
+                        <div>
+                          <span className="text-xs font-bold text-slate-900 dark:text-white block">تسجيل المستخدمين الجدد</span>
+                          <span className="text-[11px] text-slate-500 dark:text-gray-400 mt-0.5 block">
+                            السماح بإنشاء حسابات مستقلين وشركات جديدة
+                          </span>
+                        </div>
+                        <input
+                          type="checkbox"
+                          checked={siteSettingsForm.allowUserRegistration}
+                          onChange={(e) => setSiteSettingsForm({ ...siteSettingsForm, allowUserRegistration: e.target.checked })}
+                          className="w-4 h-4 text-emerald-600 rounded focus:ring-emerald-500 border-slate-300 mt-0.5 cursor-pointer"
+                        />
+                      </label>
+                    </div>
+
+                    {/* Job Posting */}
+                    <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-dark-950/70 border border-slate-200 dark:border-dark-800">
+                      <label className="flex items-start justify-between cursor-pointer gap-2">
+                        <div>
+                          <span className="text-xs font-bold text-slate-900 dark:text-white block">نشر الوظائف والمشاريع</span>
+                          <span className="text-[11px] text-slate-500 dark:text-gray-400 mt-0.5 block">
+                            السماح لأصحاب الأعمال بطرح عقود في السوق
+                          </span>
+                        </div>
+                        <input
+                          type="checkbox"
+                          checked={siteSettingsForm.allowJobPosting}
+                          onChange={(e) => setSiteSettingsForm({ ...siteSettingsForm, allowJobPosting: e.target.checked })}
+                          className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500 border-slate-300 mt-0.5 cursor-pointer"
+                        />
+                      </label>
+                    </div>
+
+                    {/* Free Trial AI Tier */}
+                    <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-dark-950/70 border border-slate-200 dark:border-dark-800">
+                      <label className="flex items-start justify-between cursor-pointer gap-2">
+                        <div>
+                          <span className="text-xs font-bold text-slate-900 dark:text-white block">التجربة المجانية (3 أيام)</span>
+                          <span className="text-[11px] text-slate-500 dark:text-gray-400 mt-0.5 block">
+                            تفعيل باقة الذكاء الاصطناعي الترويجية تلقائياً
+                          </span>
+                        </div>
+                        <input
+                          type="checkbox"
+                          checked={siteSettingsForm.enableAiStudioFreeTier}
+                          onChange={(e) => setSiteSettingsForm({ ...siteSettingsForm, enableAiStudioFreeTier: e.target.checked })}
+                          className="w-4 h-4 text-amber-600 rounded focus:ring-amber-500 border-slate-300 mt-0.5 cursor-pointer"
+                        />
+                      </label>
+                    </div>
+
+                    {/* Company Verification */}
+                    <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-dark-950/70 border border-slate-200 dark:border-dark-800">
+                      <label className="flex items-start justify-between cursor-pointer gap-2">
+                        <div>
+                          <span className="text-xs font-bold text-slate-900 dark:text-white block">مراجعة وتوثيق الشركات</span>
+                          <span className="text-[11px] text-slate-500 dark:text-gray-400 mt-0.5 block">
+                            اشتراط اعتماد السجل التجاري قبل فتح العقود
+                          </span>
+                        </div>
+                        <input
+                          type="checkbox"
+                          checked={siteSettingsForm.requireCompanyVerification}
+                          onChange={(e) => setSiteSettingsForm({ ...siteSettingsForm, requireCompanyVerification: e.target.checked })}
+                          className="w-4 h-4 text-emerald-600 rounded focus:ring-emerald-500 border-slate-300 mt-0.5 cursor-pointer"
+                        />
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 2. Site Identity & Branding */}
+                <div className="p-5 rounded-xl bg-white dark:bg-dark-900 border border-slate-200 dark:border-dark-800 shadow-xs space-y-4">
+                  <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-dark-800">
+                    <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                      <span className="material-symbols-outlined text-amber-500 text-[18px]">badge</span>
+                      <span>الهوية الأساسية ومعلومات المنصة (Branding & Identity)</span>
+                    </h3>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-800 dark:text-gray-200 mb-1">اسم المنصة الرسمي</label>
+                      <input
+                        type="text"
+                        value={siteSettingsForm.siteName}
+                        onChange={(e) => setSiteSettingsForm({ ...siteSettingsForm, siteName: e.target.value })}
+                        className="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-dark-950 border border-slate-200 dark:border-dark-700 text-xs text-slate-900 dark:text-white focus:bg-white focus:border-amber-500 outline-none transition-all"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-800 dark:text-gray-200 mb-1">العملة الأساسية للحسابات</label>
+                      <select
+                        value={siteSettingsForm.defaultCurrency}
+                        onChange={(e) => setSiteSettingsForm({ ...siteSettingsForm, defaultCurrency: e.target.value })}
+                        className="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-dark-950 border border-slate-200 dark:border-dark-700 text-xs text-slate-900 dark:text-white focus:bg-white focus:border-amber-500 outline-none transition-all"
+                      >
+                        <option value="USD ($)">USD ($) - الدولار الأمريكي</option>
+                        <option value="USDT (TRC20)">USDT (TRC20) - العملة الرقمية المستقرة</option>
+                        <option value="ILS (₪)">ILS (₪) - الشيكل الفلسطيني / المحلي</option>
+                      </select>
+                    </div>
+
+                    <div className="md:col-span-2">
+                      <label className="block text-xs font-bold text-slate-800 dark:text-gray-200 mb-1">الشعار الترويجي (Tagline)</label>
+                      <input
+                        type="text"
+                        value={siteSettingsForm.siteTagline}
+                        onChange={(e) => setSiteSettingsForm({ ...siteSettingsForm, siteTagline: e.target.value })}
+                        className="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-dark-950 border border-slate-200 dark:border-dark-700 text-xs text-slate-900 dark:text-white focus:bg-white focus:border-amber-500 outline-none transition-all"
+                      />
+                    </div>
+
+                    <div className="md:col-span-2">
+                      <label className="block text-xs font-bold text-slate-800 dark:text-gray-200 mb-1">وصف المنصة لمحركات البحث (SEO Meta Description)</label>
+                      <textarea
+                        rows={2}
+                        value={siteSettingsForm.metaDescription}
+                        onChange={(e) => setSiteSettingsForm({ ...siteSettingsForm, metaDescription: e.target.value })}
+                        className="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-dark-950 border border-slate-200 dark:border-dark-700 text-xs text-slate-900 dark:text-white focus:bg-white focus:border-amber-500 outline-none transition-all leading-relaxed"
+                      />
+                    </div>
+
+                    <div className="md:col-span-2">
+                      <label className="block text-xs font-bold text-slate-800 dark:text-gray-200 mb-1">نص حقوق الملكية في الفوتر</label>
+                      <input
+                        type="text"
+                        value={siteSettingsForm.copyrightText}
+                        onChange={(e) => setSiteSettingsForm({ ...siteSettingsForm, copyrightText: e.target.value })}
+                        className="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-dark-950 border border-slate-200 dark:border-dark-700 text-xs text-slate-900 dark:text-white focus:bg-white focus:border-amber-500 outline-none transition-all"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* 3. Financial & Escrow Policies */}
+                <div className="p-5 rounded-xl bg-white dark:bg-dark-900 border border-slate-200 dark:border-dark-800 shadow-xs space-y-4">
+                  <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-dark-800">
+                    <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                      <span className="material-symbols-outlined text-emerald-500 text-[18px]">account_balance</span>
+                      <span>السياسات المالية وعمولات الضمان Escrow (Financial Rates)</span>
+                    </h3>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-800 dark:text-gray-200 mb-1">عمولة المنصة من العقود (%)</label>
+                      <div className="relative">
+                        <input
+                          type="number"
+                          min="0"
+                          max="30"
+                          step="0.5"
+                          value={siteSettingsForm.platformFeePercent}
+                          onChange={(e) => setSiteSettingsForm({ ...siteSettingsForm, platformFeePercent: Number(e.target.value) })}
+                          className="w-full px-3 py-2 pr-8 rounded-lg bg-slate-50 dark:bg-dark-950 border border-slate-200 dark:border-dark-700 text-xs font-mono font-bold text-slate-900 dark:text-white focus:bg-white focus:border-emerald-500 outline-none transition-all"
+                        />
+                        <span className="absolute right-3 top-2 text-xs font-bold text-slate-400">%</span>
+                      </div>
+                      <span className="text-[10px] text-slate-500 dark:text-gray-400 mt-1 block">تخصم من قيمة الصفقة المكتملة</span>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-800 dark:text-gray-200 mb-1">الحد الأدنى للسحب الفوري ($)</label>
+                      <div className="relative">
+                        <input
+                          type="number"
+                          min="10"
+                          step="5"
+                          value={siteSettingsForm.minWithdrawalUsd}
+                          onChange={(e) => setSiteSettingsForm({ ...siteSettingsForm, minWithdrawalUsd: Number(e.target.value) })}
+                          className="w-full px-3 py-2 pr-8 rounded-lg bg-slate-50 dark:bg-dark-950 border border-slate-200 dark:border-dark-700 text-xs font-mono font-bold text-slate-900 dark:text-white focus:bg-white focus:border-emerald-500 outline-none transition-all"
+                        />
+                        <span className="absolute right-3 top-2 text-xs font-bold text-slate-400">$</span>
+                      </div>
+                      <span className="text-[10px] text-slate-500 dark:text-gray-400 mt-1 block">لبنوك ومحافظ غزة والضفة</span>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-800 dark:text-gray-200 mb-1">مدة باقة التجربة المجانية (أيام)</label>
+                      <input
+                        type="number"
+                        min="1"
+                        max="30"
+                        value={siteSettingsForm.freeTrialDays}
+                        onChange={(e) => setSiteSettingsForm({ ...siteSettingsForm, freeTrialDays: Number(e.target.value) })}
+                        className="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-dark-950 border border-slate-200 dark:border-dark-700 text-xs font-mono font-bold text-slate-900 dark:text-white focus:bg-white focus:border-amber-500 outline-none transition-all"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-800 dark:text-gray-200 mb-1">حصة صور التجربة (4K)</label>
+                      <input
+                        type="number"
+                        min="5"
+                        value={siteSettingsForm.freeTrialImagesQuota}
+                        onChange={(e) => setSiteSettingsForm({ ...siteSettingsForm, freeTrialImagesQuota: Number(e.target.value) })}
+                        className="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-dark-950 border border-slate-200 dark:border-dark-700 text-xs font-mono font-bold text-slate-900 dark:text-white focus:bg-white focus:border-amber-500 outline-none transition-all"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-800 dark:text-gray-200 mb-1">حصة فيديوهات التجربة</label>
+                      <input
+                        type="number"
+                        min="1"
+                        value={siteSettingsForm.freeTrialVideosQuota}
+                        onChange={(e) => setSiteSettingsForm({ ...siteSettingsForm, freeTrialVideosQuota: Number(e.target.value) })}
+                        className="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-dark-950 border border-slate-200 dark:border-dark-700 text-xs font-mono font-bold text-slate-900 dark:text-white focus:bg-white focus:border-sky-500 outline-none transition-all"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* 4. AI Engine Defaults */}
+                <div className="p-5 rounded-xl bg-white dark:bg-dark-900 border border-slate-200 dark:border-dark-800 shadow-xs space-y-4">
+                  <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-dark-800">
+                    <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                      <span className="material-symbols-outlined text-amber-500 text-[18px]">smart_toy</span>
+                      <span>محركات الذكاء الاصطناعي الافتراضية (AI Engine Defaults)</span>
+                    </h3>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-800 dark:text-gray-200 mb-1">المحرك الافتراضي للصور</label>
+                      <select
+                        value={siteSettingsForm.defaultImageModel}
+                        onChange={(e) => setSiteSettingsForm({ ...siteSettingsForm, defaultImageModel: e.target.value })}
+                        className="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-dark-950 border border-slate-200 dark:border-dark-700 text-xs text-slate-900 dark:text-white focus:bg-white focus:border-amber-500 outline-none transition-all"
+                      >
+                        <option value="GPT Image 2 (HD Photo)">GPT Image 2 (HD Photo)</option>
+                        <option value="FLUX Pro 1.1 Ultra">FLUX Pro 1.1 Ultra</option>
+                        <option value="Stable Diffusion 3.5 Large">Stable Diffusion 3.5 Large</option>
+                        <option value="Nano Banana Pro (4K Fast)">Nano Banana Pro (4K Fast)</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-800 dark:text-gray-200 mb-1">المحرك الافتراضي للفيديو</label>
+                      <select
+                        value={siteSettingsForm.defaultVideoModel}
+                        onChange={(e) => setSiteSettingsForm({ ...siteSettingsForm, defaultVideoModel: e.target.value })}
+                        className="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-dark-950 border border-slate-200 dark:border-dark-700 text-xs text-slate-900 dark:text-white focus:bg-white focus:border-sky-500 outline-none transition-all"
+                      >
+                        <option value="Veo 3.1 & Seedance 2.0 (4K)">Veo 3.1 & Seedance 2.0 (4K)</option>
+                        <option value="Kling v5 Omni Cinema">Kling v5 Omni Cinema</option>
+                        <option value="Luma Dream Machine 2">Luma Dream Machine 2</option>
+                        <option value="Runway Gen-3 Alpha">Runway Gen-3 Alpha</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-800 dark:text-gray-200 mb-1">حد الطلبات بالدقيقة (Rate Limit)</label>
+                      <input
+                        type="number"
+                        min="10"
+                        max="300"
+                        value={siteSettingsForm.aiRateLimitPerMin}
+                        onChange={(e) => setSiteSettingsForm({ ...siteSettingsForm, aiRateLimitPerMin: Number(e.target.value) })}
+                        className="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-dark-950 border border-slate-200 dark:border-dark-700 text-xs font-mono font-bold text-slate-900 dark:text-white focus:bg-white focus:border-amber-500 outline-none transition-all"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* 5. Contact & Support Channels */}
+                <div className="p-5 rounded-xl bg-white dark:bg-dark-900 border border-slate-200 dark:border-dark-800 shadow-xs space-y-4">
+                  <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-dark-800">
+                    <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                      <span className="material-symbols-outlined text-blue-500 text-[18px]">contact_support</span>
+                      <span>قنوات التواصل والدعم الفني المباشر (Contact & Support)</span>
+                    </h3>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-800 dark:text-gray-200 mb-1">البريد الإلكتروني للدعم</label>
+                      <input
+                        type="email"
+                        value={siteSettingsForm.supportEmail}
+                        onChange={(e) => setSiteSettingsForm({ ...siteSettingsForm, supportEmail: e.target.value })}
+                        className="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-dark-950 border border-slate-200 dark:border-dark-700 text-xs font-mono text-slate-900 dark:text-white focus:bg-white focus:border-amber-500 outline-none transition-all"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-800 dark:text-gray-200 mb-1">هاتف الدعم المباشر</label>
+                      <input
+                        type="text"
+                        value={siteSettingsForm.supportPhone}
+                        onChange={(e) => setSiteSettingsForm({ ...siteSettingsForm, supportPhone: e.target.value })}
+                        className="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-dark-950 border border-slate-200 dark:border-dark-700 text-xs font-mono text-slate-900 dark:text-white focus:bg-white focus:border-amber-500 outline-none transition-all"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-800 dark:text-gray-200 mb-1">رقم واتساب الدعم الفني</label>
+                      <input
+                        type="text"
+                        value={siteSettingsForm.supportWhatsapp}
+                        onChange={(e) => setSiteSettingsForm({ ...siteSettingsForm, supportWhatsapp: e.target.value })}
+                        className="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-dark-950 border border-slate-200 dark:border-dark-700 text-xs font-mono text-slate-900 dark:text-white focus:bg-white focus:border-amber-500 outline-none transition-all"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-800 dark:text-gray-200 mb-1">معرف تيليجرام الرسمي</label>
+                      <input
+                        type="text"
+                        value={siteSettingsForm.officialTelegram}
+                        onChange={(e) => setSiteSettingsForm({ ...siteSettingsForm, officialTelegram: e.target.value })}
+                        className="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-dark-950 border border-slate-200 dark:border-dark-700 text-xs font-mono text-slate-900 dark:text-white focus:bg-white focus:border-amber-500 outline-none transition-all"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-800 dark:text-gray-200 mb-1">رابط تويتر / X الرسمي</label>
+                      <input
+                        type="url"
+                        value={siteSettingsForm.officialTwitter}
+                        onChange={(e) => setSiteSettingsForm({ ...siteSettingsForm, officialTwitter: e.target.value })}
+                        className="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-dark-950 border border-slate-200 dark:border-dark-700 text-xs font-mono text-slate-900 dark:text-white focus:bg-white focus:border-amber-500 outline-none transition-all"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-800 dark:text-gray-200 mb-1">رابط صفحة لينكد إن (LinkedIn)</label>
+                      <input
+                        type="url"
+                        value={siteSettingsForm.officialLinkedIn}
+                        onChange={(e) => setSiteSettingsForm({ ...siteSettingsForm, officialLinkedIn: e.target.value })}
+                        className="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-dark-950 border border-slate-200 dark:border-dark-700 text-xs font-mono text-slate-900 dark:text-white focus:bg-white focus:border-amber-500 outline-none transition-all"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Bottom Save Bar */}
+                <div className="pt-2 flex items-center justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={handleResetSiteSettings}
+                    className="px-4 py-2 rounded-xl bg-white dark:bg-dark-900 hover:bg-slate-50 dark:hover:bg-dark-850 text-slate-700 dark:text-gray-300 border border-slate-200 dark:border-dark-700 text-xs font-semibold shadow-2xs transition-all"
+                  >
+                    استعادة الافتراضي
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-6 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs flex items-center gap-2 shadow-sm transition-all"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">save</span>
+                    <span>حفظ وتطبيق إعدادات الموقع فوراً</span>
+                  </button>
+                </div>
+
+              </form>
+            </div>
+          )}
+
         </main>
       </div>
 
       {/* ================= MODAL: ADD NEW USER BY ADMIN ================= */}
       {isAddUserModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
-          <div className="relative w-full max-w-md rounded-3xl glass-card p-6 md:p-8 border border-purple-500/40 shadow-2xl space-y-5">
+          <div className="relative w-full max-w-md rounded-3xl glass-card p-6 md:p-8 border border-gold-500/40 shadow-2xl space-y-5">
             <button
               onClick={() => setIsAddUserModalOpen(false)}
               className="absolute top-5 left-5 text-gray-400 hover:text-white"
@@ -1829,7 +3252,7 @@ export default function SuperAdminDashboardPage() {
                   required
                   value={newUserName}
                   onChange={(e) => setNewUserName(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-dark-900 border border-purple-500/30 text-xs text-white"
+                  className="w-full px-3 py-2 rounded-xl bg-dark-900 border border-gold-500/30 text-xs text-white"
                 />
               </div>
 
@@ -1840,7 +3263,7 @@ export default function SuperAdminDashboardPage() {
                   required
                   value={newUserEmail}
                   onChange={(e) => setNewUserEmail(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-dark-900 border border-purple-500/30 text-xs text-white font-mono"
+                  className="w-full px-3 py-2 rounded-xl bg-dark-900 border border-gold-500/30 text-xs text-white font-mono"
                 />
               </div>
 
@@ -1852,7 +3275,7 @@ export default function SuperAdminDashboardPage() {
                     required
                     value={newUserPassword}
                     onChange={(e) => setNewUserPassword(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl bg-dark-900 border border-purple-500/30 text-xs text-white font-mono"
+                    className="w-full px-3 py-2 rounded-xl bg-dark-900 border border-gold-500/30 text-xs text-white font-mono"
                   />
                 </div>
                 <div>
@@ -1860,7 +3283,7 @@ export default function SuperAdminDashboardPage() {
                   <select
                     value={newUserRole}
                     onChange={(e) => setNewUserRole(e.target.value as AuthRole)}
-                    className="w-full px-3 py-2 rounded-xl bg-dark-900 border border-purple-500/30 text-xs text-white"
+                    className="w-full px-3 py-2 rounded-xl bg-dark-900 border border-gold-500/30 text-xs text-white"
                   >
                     <option value="JOB_SEEKER">باحث عن عمل / مستقل</option>
                     <option value="EMPLOYER">صاحب عمل / شركة</option>
@@ -1877,7 +3300,7 @@ export default function SuperAdminDashboardPage() {
                     type="text"
                     value={newUserCompanyName}
                     onChange={(e) => setNewUserCompanyName(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl bg-dark-900 border border-purple-500/30 text-xs text-white"
+                    className="w-full px-3 py-2 rounded-xl bg-dark-900 border border-gold-500/30 text-xs text-white"
                   />
                 </div>
               )}
@@ -1888,7 +3311,7 @@ export default function SuperAdminDashboardPage() {
                   type="text"
                   value={newUserLocation}
                   onChange={(e) => setNewUserLocation(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-dark-900 border border-purple-500/30 text-xs text-white"
+                  className="w-full px-3 py-2 rounded-xl bg-dark-900 border border-gold-500/30 text-xs text-white"
                 />
               </div>
 
@@ -1902,7 +3325,7 @@ export default function SuperAdminDashboardPage() {
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs shadow-lg"
+                  className="px-5 py-2 rounded-xl gold-button-gradient text-dark-950 font-bold text-xs shadow-md shadow-gold-500/20 hover:scale-105 active:scale-95 transition-all"
                 >
                   إنشاء الحساب
                 </button>
@@ -1915,7 +3338,7 @@ export default function SuperAdminDashboardPage() {
       {/* ================= MODAL: SUPER ADMIN POST JOB ================= */}
       {isAddJobOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
-          <div className="relative w-full max-w-xl rounded-3xl glass-card p-6 md:p-8 border border-purple-500/40 shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto">
+          <div className="relative w-full max-w-xl rounded-3xl glass-card p-6 md:p-8 border border-gold-500/40 shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto">
             <button
               onClick={() => setIsAddJobOpen(false)}
               className="absolute top-5 left-5 text-gray-400 hover:text-white"
@@ -1924,7 +3347,7 @@ export default function SuperAdminDashboardPage() {
             </button>
 
             <div>
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-500/20 border border-purple-500/30 text-purple-300 text-xs font-semibold mb-2">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gold-500/15 border border-gold-500/30 text-amber-900 dark:text-gold-300 font-bold text-xs mb-2">
                 <span className="material-symbols-outlined text-[15px]">admin_panel_settings</span>
                 <span>نشر وظيفة / مشروع رسمي من لوحة Super Admin</span>
               </div>
@@ -1951,7 +3374,7 @@ export default function SuperAdminDashboardPage() {
                     placeholder="مثال: بناء منصة ذكاء اصطناعي وتطبيق هواتف"
                     value={adminJobTitle}
                     onChange={(e) => setAdminJobTitle(e.target.value)}
-                    className="w-full px-3 py-2.5 rounded-xl bg-dark-900 border border-purple-500/30 text-xs text-white focus:outline-none focus:border-purple-400"
+                    className="w-full px-3 py-2.5 rounded-xl bg-dark-900 border border-gold-500/30 text-xs text-white focus:outline-none focus:border-gold-400"
                   />
                 </div>
 
@@ -1965,7 +3388,7 @@ export default function SuperAdminDashboardPage() {
                       required
                       value={adminJobCompany}
                       onChange={(e) => setAdminJobCompany(e.target.value)}
-                      className="w-full px-3 py-2.5 rounded-xl bg-dark-900 border border-purple-500/30 text-xs text-white focus:outline-none focus:border-purple-400"
+                      className="w-full px-3 py-2.5 rounded-xl bg-dark-900 border border-gold-500/30 text-xs text-white focus:outline-none focus:border-gold-400"
                     />
                   </div>
 
@@ -1978,7 +3401,7 @@ export default function SuperAdminDashboardPage() {
                       required
                       value={adminJobLocation}
                       onChange={(e) => setAdminJobLocation(e.target.value)}
-                      className="w-full px-3 py-2.5 rounded-xl bg-dark-900 border border-purple-500/30 text-xs text-white focus:outline-none focus:border-purple-400"
+                      className="w-full px-3 py-2.5 rounded-xl bg-dark-900 border border-gold-500/30 text-xs text-white focus:outline-none focus:border-gold-400"
                     />
                   </div>
                 </div>
@@ -1993,7 +3416,7 @@ export default function SuperAdminDashboardPage() {
                       required
                       value={adminJobBudget}
                       onChange={(e) => setAdminJobBudget(e.target.value)}
-                      className="w-full px-3 py-2.5 rounded-xl bg-dark-900 border border-purple-500/30 text-xs font-mono text-emerald-400 focus:outline-none focus:border-purple-400"
+                      className="w-full px-3 py-2.5 rounded-xl bg-dark-900 border border-gold-500/30 text-xs font-mono text-emerald-400 focus:outline-none focus:border-gold-400"
                     />
                   </div>
 
@@ -2005,7 +3428,7 @@ export default function SuperAdminDashboardPage() {
                       type="text"
                       value={adminJobDuration}
                       onChange={(e) => setAdminJobDuration(e.target.value)}
-                      className="w-full px-3 py-2.5 rounded-xl bg-dark-900 border border-purple-500/30 text-xs text-white focus:outline-none focus:border-purple-400"
+                      className="w-full px-3 py-2.5 rounded-xl bg-dark-900 border border-gold-500/30 text-xs text-white focus:outline-none focus:border-gold-400"
                     />
                   </div>
 
@@ -2016,7 +3439,7 @@ export default function SuperAdminDashboardPage() {
                     <select
                       value={adminJobCategory}
                       onChange={(e) => setAdminJobCategory(e.target.value)}
-                      className="w-full px-3 py-2.5 rounded-xl bg-dark-900 border border-purple-500/30 text-xs text-white focus:outline-none"
+                      className="w-full px-3 py-2.5 rounded-xl bg-dark-900 border border-gold-500/30 text-xs text-white focus:outline-none"
                     >
                       <option value="dev">برمجة ومواقع</option>
                       <option value="ai">ذكاء اصطناعي</option>
@@ -2035,7 +3458,7 @@ export default function SuperAdminDashboardPage() {
                     type="text"
                     value={adminJobSkills}
                     onChange={(e) => setAdminJobSkills(e.target.value)}
-                    className="w-full px-3 py-2.5 rounded-xl bg-dark-900 border border-purple-500/30 text-xs text-white focus:outline-none focus:border-purple-400 font-mono"
+                    className="w-full px-3 py-2.5 rounded-xl bg-dark-900 border border-gold-500/30 text-xs text-white focus:outline-none focus:border-gold-400 font-mono"
                   />
                 </div>
 
@@ -2047,21 +3470,21 @@ export default function SuperAdminDashboardPage() {
                     rows={3}
                     value={adminJobDesc}
                     onChange={(e) => setAdminJobDesc(e.target.value)}
-                    className="w-full px-3 py-2.5 rounded-xl bg-dark-900 border border-purple-500/30 text-xs text-gray-200 focus:outline-none focus:border-purple-400 leading-relaxed"
+                    className="w-full px-3 py-2.5 rounded-xl bg-dark-900 border border-gold-500/30 text-xs text-gray-200 focus:outline-none focus:border-gold-400 leading-relaxed"
                   />
                 </div>
 
                 {/* Diaspora sponsor checkbox */}
-                <div className="p-3 rounded-xl bg-purple-500/10 border border-purple-500/30 flex items-center gap-3">
+                <div className="p-3 rounded-xl bg-gold-500/10 border border-gold-500/30 flex items-center gap-3">
                   <input
                     type="checkbox"
                     id="admin-diaspora-checkbox"
                     checked={adminJobIsDiaspora}
                     onChange={(e) => setAdminJobIsDiaspora(e.target.checked)}
-                    className="w-4 h-4 accent-purple-500 rounded cursor-pointer"
+                    className="w-4 h-4 accent-gold-500 rounded cursor-pointer"
                   />
                   <label htmlFor="admin-diaspora-checkbox" className="text-xs text-gray-200 cursor-pointer">
-                    إرفاق شارة <strong className="text-purple-300">"شريك داعم من الشتات الفلسطيني"</strong> مع تمييز المشروع في السوق
+                    إرفاق شارة <strong className="text-gold-300">"شريك داعم من الشتات الفلسطيني"</strong> مع تمييز المشروع في السوق
                   </label>
                 </div>
 
@@ -2075,7 +3498,7 @@ export default function SuperAdminDashboardPage() {
                   </button>
                   <button
                     type="submit"
-                    className="px-6 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs flex items-center gap-2 shadow-lg"
+                    className="px-6 py-2.5 rounded-xl gold-button-gradient text-dark-950 font-bold text-xs flex items-center gap-2 shadow-md shadow-gold-500/20 hover:scale-105 active:scale-95 transition-all"
                   >
                     <span>نشر الوظيفة في السوق فوراً</span>
                     <span className="material-symbols-outlined text-[16px]">send</span>
@@ -2344,7 +3767,7 @@ export default function SuperAdminDashboardPage() {
                     required
                     value={extraVideosAmount}
                     onChange={(e) => setExtraVideosAmount(Number(e.target.value))}
-                    className="w-full px-3 py-2 rounded-xl bg-dark-900 border border-purple-500/30 text-xs text-purple-300 font-mono font-bold"
+                    className="w-full px-3 py-2 rounded-xl bg-dark-900 border border-gold-500/30 text-xs text-gold-300 font-mono font-bold"
                   />
                 </div>
               </div>
@@ -2376,7 +3799,7 @@ export default function SuperAdminDashboardPage() {
       {/* ================= MODAL: CHANGE / UPGRADE PLAN ================= */}
       {isChangePlanModalOpen && selectedSub && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
-          <div className="relative w-full max-w-md rounded-3xl glass-card p-6 md:p-8 border border-purple-500/40 shadow-2xl space-y-5">
+          <div className="relative w-full max-w-md rounded-3xl glass-card p-6 md:p-8 border border-gold-500/40 shadow-2xl space-y-5">
             <button
               onClick={() => setIsChangePlanModalOpen(false)}
               className="absolute top-5 left-5 text-gray-400 hover:text-white"
@@ -2385,7 +3808,7 @@ export default function SuperAdminDashboardPage() {
             </button>
 
             <div>
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-500/15 border border-purple-500/30 text-purple-300 text-xs font-bold mb-1.5">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gold-500/15 border border-gold-500/30 text-amber-900 dark:text-gold-300 text-xs font-bold mb-1.5">
                 <span className="material-symbols-outlined text-[15px]">published_with_changes</span>
                 <span>ترقية أو تغيير باقة المستخدم</span>
               </div>
@@ -2402,8 +3825,8 @@ export default function SuperAdminDashboardPage() {
                       key={p.id}
                       className={`flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-all ${
                         targetPlanId === p.id
-                          ? "bg-purple-500/20 border-purple-500 text-white"
-                          : "bg-dark-900 border-purple-500/20 text-gray-400 hover:text-white"
+                          ? "bg-gold-500/20 border-gold-500 text-white font-bold"
+                          : "bg-dark-900 border-gold-500/20 text-gray-400 hover:text-white"
                       }`}
                     >
                       <div className="flex items-center gap-2.5">
@@ -2413,7 +3836,7 @@ export default function SuperAdminDashboardPage() {
                           value={p.id}
                           checked={targetPlanId === p.id}
                           onChange={(e) => setTargetPlanId(e.target.value)}
-                          className="accent-purple-500"
+                          className="accent-gold-500"
                         />
                         <div>
                           <span className="text-xs font-bold block text-white">{p.name}</span>
@@ -2440,7 +3863,7 @@ export default function SuperAdminDashboardPage() {
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs shadow-lg"
+                  className="px-6 py-2 rounded-xl gold-button-gradient text-dark-950 font-bold text-xs shadow-md shadow-gold-500/20 hover:scale-105 active:scale-95 transition-all"
                 >
                   تأكيد ترقية الباقة
                 </button>

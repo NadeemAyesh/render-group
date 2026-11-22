@@ -1,8 +1,11 @@
 "use client";
 
-import React, { useState } from "react";
-import { useAuth } from "./layout";
+import React, { useState, useEffect } from "react";
+import Link from "next/link";
+import { useAuth } from "@/context/DashboardAuthContext";
 import { hasPermission } from "@/lib/permissions";
+import { getCourses, getSubmissions, Course, AssignmentSubmission } from "@/lib/courses-service";
+import { ActionIconButton } from "@/components/ui/ActionIconButton";
 
 interface MockJob {
   id: string;
@@ -110,6 +113,8 @@ export default function TalentDashboardPage() {
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submittedSuccess, setSubmittedSuccess] = useState(false);
+  const [mySubmissions, setMySubmissions] = useState<AssignmentSubmission[]>([]);
+  const [activeCoursesList, setActiveCoursesList] = useState<Course[]>([]);
 
   // Load custom proposals submitted across the platform
   React.useEffect(() => {
@@ -125,8 +130,18 @@ export default function TalentDashboardPage() {
       } catch (e) {
         console.error(e);
       }
+
+      // Load student submissions
+      try {
+        const allSubs = getSubmissions();
+        const userSubs = currentUser?.id
+          ? allSubs.filter((s) => s.studentId === currentUser.id)
+          : allSubs.slice(0, 2);
+        setMySubmissions(userSubs.length > 0 ? userSubs : allSubs.slice(0, 2));
+        setActiveCoursesList(getCourses().slice(0, 2));
+      } catch {}
     }
-  }, []);
+  }, [currentUser]);
 
   // Check Action-level permissions
   const canSubmitProposal = hasPermission(currentUser, "action.jobs.submit_proposal");
@@ -182,9 +197,9 @@ export default function TalentDashboardPage() {
               أنت تتصفح اللوحة بدور:{" "}
               <strong className="text-gold-400 font-mono">[{currentUser.role}]</strong>
             </span>
-            {currentUser.customGrantedPermissions.length > 0 && (
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/40">
-                +{currentUser.customGrantedPermissions.length} صلاحية استثنائية ممنوحة!
+            {(currentUser.customGrantedPermissions?.length || 0) > 0 && (
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-gold-500/20 text-gold-300 border border-gold-500/40">
+                +{currentUser.customGrantedPermissions?.length} صلاحية استثنائية ممنوحة!
               </span>
             )}
           </div>
@@ -211,7 +226,7 @@ export default function TalentDashboardPage() {
           <span
             className={`text-[10px] px-2.5 py-1 rounded-lg font-mono font-semibold flex items-center gap-1 ${
               canDeleteJob
-                ? "bg-purple-500/15 text-purple-300 border border-purple-500/30"
+                ? "bg-gold-500/15 text-gold-300 border border-gold-500/30"
                 : "bg-gray-800 text-gray-500 border border-gray-700"
             }`}
           >
@@ -367,12 +382,12 @@ export default function TalentDashboardPage() {
                   {/* Actions (Enforcing RBAC action permissions) */}
                   <div className="flex items-center gap-2">
                     {canDeleteJob && (
-                      <button
-                        title="صلاحية إدارية: action.jobs.delete"
-                        className="p-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 transition-colors"
-                      >
-                        <span className="material-symbols-outlined text-[18px]">delete</span>
-                      </button>
+                      <ActionIconButton
+                        icon="delete"
+                        label="صلاحية إدارية: action.jobs.delete"
+                        variant="danger"
+                        size="xs"
+                      />
                     )}
 
                     <button
@@ -447,6 +462,93 @@ export default function TalentDashboardPage() {
             </tbody>
           </table>
         </div>
+      </div>
+
+      {/* ================= COURSES & ASSIGNMENTS TRACKER ================= */}
+      <div className="p-6 rounded-2xl bg-dark-900 border border-gold-500/20 space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-gold-500/15">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-amber-500/15 text-amber-400 border border-amber-500/30 flex items-center justify-center font-bold">
+              <span className="material-symbols-outlined text-[22px]">school</span>
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-white flex items-center gap-2">
+                <span>دوراتي التدريبية وتكليفاتي المسلمة (Academy & Assignments)</span>
+              </h3>
+              <p className="text-xs text-gray-400 mt-0.5">
+                متابعة تصحيح المشرف وتقييم التكليفات العملية المسلمة على المنصة
+              </p>
+            </div>
+          </div>
+
+          <Link
+            href="/courses"
+            className="px-4 py-2 rounded-xl gold-button-gradient text-dark-950 font-bold text-xs flex items-center gap-1.5 self-start sm:self-auto shadow-md"
+          >
+            <span>استعراض كافة الدورات</span>
+            <span className="material-symbols-outlined text-[15px]">arrow_back</span>
+          </Link>
+        </div>
+
+        {/* Assignments Table */}
+        {mySubmissions.length > 0 ? (
+          <div className="space-y-3">
+            {mySubmissions.map((sub) => (
+              <div
+                key={sub.id}
+                className="p-4 rounded-xl bg-dark-950 border border-gold-500/15 flex flex-col md:flex-row md:items-center justify-between gap-4"
+              >
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-xs font-bold text-gold-300">{sub.courseTitle}</span>
+                    <span className="text-gray-500">•</span>
+                    <span className="text-[11px] text-gray-400">{sub.lessonTitle}</span>
+                  </div>
+                  <h4 className="text-sm font-bold text-white mb-1.5">{sub.assignmentTitle}</h4>
+                  {sub.instructorFeedback && (
+                    <p className="text-xs text-amber-200 bg-amber-500/10 p-2.5 rounded-lg border border-amber-500/20 max-w-xl">
+                      <strong>ملاحظات المشرف ({sub.reviewedBy || "Super Admin"}): </strong>
+                      {sub.instructorFeedback}
+                    </p>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-3 shrink-0">
+                  {sub.status === "graded" && (
+                    <div className="px-3 py-1 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 text-xs font-bold flex items-center gap-1">
+                      <span className="material-symbols-outlined text-[15px]">check_circle</span>
+                      <span>معتمد ({sub.score}/100)</span>
+                    </div>
+                  )}
+                  {sub.status === "needs_revision" && (
+                    <div className="px-3 py-1 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30 text-xs font-bold flex items-center gap-1">
+                      <span className="material-symbols-outlined text-[15px]">priority_high</span>
+                      <span>مطلوب تعديلات</span>
+                    </div>
+                  )}
+                  {sub.status === "pending" && (
+                    <div className="px-3 py-1 rounded-full bg-blue-500/15 text-blue-300 border border-blue-500/30 text-xs font-bold flex items-center gap-1">
+                      <span className="material-symbols-outlined text-[15px]">hourglass_top</span>
+                      <span>قيد التدقيق</span>
+                    </div>
+                  )}
+
+                  <Link
+                    href={`/courses/${sub.courseId}`}
+                    className="px-3 py-1.5 rounded-lg bg-dark-850 hover:bg-dark-800 text-gray-200 text-xs font-bold border border-gold-500/20 transition-all flex items-center gap-1"
+                  >
+                    <span>فتح الدورة والتكليف</span>
+                    <span className="material-symbols-outlined text-[14px]">arrow_back</span>
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-6 text-xs text-gray-400">
+            لم تقم بتسليم تكليفات بعد. استكشف دورات الأكاديمية المجانية وابدأ التعلم الآن.
+          </div>
+        )}
       </div>
 
       {/* ================= MODAL: SUBMIT PROPOSAL ================= */}

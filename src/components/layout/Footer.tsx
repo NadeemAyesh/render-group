@@ -43,6 +43,12 @@ export const Footer: React.FC<FooterProps> = ({ onOpenActivation }) => {
             <h4 className="text-sm font-bold text-white mb-3">صفحات المنظومة</h4>
             <ul className="space-y-2 text-xs text-gray-400">
               <li>
+                <Link href="/courses" className="hover:text-gold-400 transition-colors text-amber-400 font-semibold flex items-center gap-1.5 justify-center md:justify-start">
+                  <span>أكاديمية الدورات والتكليفات</span>
+                  <span className="text-[10px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300">يوتيوب ومتابعة</span>
+                </Link>
+              </li>
+              <li>
                 <Link href="/cv-builder" className="hover:text-gold-400 transition-colors text-gold-400 font-semibold">
                   صانع السيرة الذاتية (ATS Builder)
                 </Link>

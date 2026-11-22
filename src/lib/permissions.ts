@@ -4,7 +4,7 @@
 export type PermissionType = "menu" | "page" | "action";
 
 export interface PermissionNode {
-  id: string; // e.g. "menu.jobs", "page.jobs.list", "action.jobs.delete"
+  id: string; // e.g. "menu.jobs", "page.jobs.browse", "action.jobs.delete"
   type: PermissionType;
   labelArabic: string;
   labelEnglish: string;
@@ -99,6 +99,22 @@ export const PERMISSIONS_TREE: PermissionNode[] = [
     description: "صلاحية فتح محرر مقالات وأخبار Render Group",
   },
   {
+    id: "page.courses.manage",
+    type: "page",
+    parent: "menu.content",
+    labelArabic: "صفحة إدارة الدورات والتكليفات المركزية",
+    labelEnglish: "Manage Courses & Assignments Page",
+    description: "شاشة تحكم السوبر أدمن بإضافة الدورات والدروس وفحص التكليفات",
+  },
+  {
+    id: "page.courses.browse",
+    type: "page",
+    parent: "menu.content",
+    labelArabic: "صفحة تصفح الأكاديمية والدورات",
+    labelEnglish: "Browse Courses Academy Page",
+    description: "تصفح الدورات ومتابعة فيديوهات اليوتيوب",
+  },
+  {
     id: "page.admin.permissions_tree",
     type: "page",
     parent: "menu.users_roles",
@@ -172,6 +188,38 @@ export const PERMISSIONS_TREE: PermissionNode[] = [
     labelEnglish: "Action: Release Escrow Funds",
     description: "صلاحية تحرير الأرباح للمستقل بعد تسليم العمل",
   },
+  {
+    id: "action.courses.create",
+    type: "action",
+    parent: "page.courses.manage",
+    labelArabic: "إجراء: إنشاء وتعديل الدورات والدروس",
+    labelEnglish: "Action: Create/Edit Courses",
+    description: "صلاحية إضافة دورة جديدة ورفع روابط دروس اليوتيوب والتكليفات",
+  },
+  {
+    id: "action.courses.delete",
+    type: "action",
+    parent: "page.courses.manage",
+    labelArabic: "إجراء: حذف أو أرشفة دورة تدريبية",
+    labelEnglish: "Action: Delete Course",
+    description: "صلاحية حذف دورة تدريبية وتكليفاتها",
+  },
+  {
+    id: "action.courses.grade",
+    type: "action",
+    parent: "page.courses.manage",
+    labelArabic: "إجراء: تقييم وتصحيح تكليفات الطلاب",
+    labelEnglish: "Action: Grade & Review Assignments",
+    description: "صلاحية كتابة الملاحظات ورصد الدرجات واعتماد أو طلب تعديل التكليف",
+  },
+  {
+    id: "action.courses.submit",
+    type: "action",
+    parent: "page.courses.browse",
+    labelArabic: "إجراء: تسليم تكليف الدورة للمراجعة",
+    labelEnglish: "Action: Submit Course Assignment",
+    description: "القدرة على إرسال روابط وملاحظات التكليف العملي للمشرفين",
+  },
 ];
 
 // 2. PRE-CONFIGURED ROLES
@@ -182,7 +230,7 @@ export interface SystemRole {
   defaultPermissions: string[];
 }
 
-export const SYSTEM_ROLES: Record<string, SystemRole> = {
+export const DEFAULT_SYSTEM_ROLES: Record<string, SystemRole> = {
   SUPER_ADMIN: {
     name: "SUPER_ADMIN",
     labelArabic: "مدير النظام الشامل (Super Admin)",
@@ -196,8 +244,12 @@ export const SYSTEM_ROLES: Record<string, SystemRole> = {
       "menu.dashboard",
       "menu.content",
       "page.content.articles",
+      "page.courses.manage",
+      "page.courses.browse",
       "action.content.publish",
       "action.content.delete",
+      "action.courses.create",
+      "action.courses.grade",
     ],
   },
   JOB_SEEKER: {
@@ -208,9 +260,12 @@ export const SYSTEM_ROLES: Record<string, SystemRole> = {
       "menu.jobs",
       "menu.proposals",
       "menu.studio",
+      "menu.content",
       "page.jobs.browse",
       "page.proposals.my_list",
+      "page.courses.browse",
       "action.jobs.submit_proposal",
+      "action.courses.submit",
     ],
   },
   EMPLOYER: {
@@ -227,13 +282,153 @@ export const SYSTEM_ROLES: Record<string, SystemRole> = {
   },
 };
 
-// 3. USER PERMISSION RESOLUTION ENGINE
+export const SYSTEM_ROLES = DEFAULT_SYSTEM_ROLES;
+
+// Storage Keys
+const ROLES_STORAGE_KEY = "renderlancer_roles_config";
+const USER_OVERRIDES_STORAGE_KEY = "renderlancer_user_overrides";
+
+// 3. PERSISTENT STORAGE HELPERS FOR ROLES
+export function getStoredRoles(): Record<string, SystemRole> {
+  if (typeof window === "undefined") return { ...DEFAULT_SYSTEM_ROLES };
+  try {
+    const raw = localStorage.getItem(ROLES_STORAGE_KEY);
+    if (!raw) return { ...DEFAULT_SYSTEM_ROLES };
+    const parsed = JSON.parse(raw);
+    return { ...DEFAULT_SYSTEM_ROLES, ...parsed };
+  } catch {
+    return { ...DEFAULT_SYSTEM_ROLES };
+  }
+}
+
+export function saveStoredRoles(roles: Record<string, SystemRole>): void {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(ROLES_STORAGE_KEY, JSON.stringify(roles));
+  } catch (err) {
+    console.error("Failed to save roles to localStorage", err);
+  }
+}
+
+export function toggleRolePermission(roleKey: string, permissionId: string): Record<string, SystemRole> {
+  const roles = getStoredRoles();
+  const role = roles[roleKey];
+  if (!role || role.isSuperAdmin) return roles; // Super Admin retains all permissions
+
+  const current = role.defaultPermissions || [];
+  const exists = current.includes(permissionId);
+  const updated = exists ? current.filter((id) => id !== permissionId) : [...current, permissionId];
+
+  const newRoles = {
+    ...roles,
+    [roleKey]: {
+      ...role,
+      defaultPermissions: updated,
+    },
+  };
+  saveStoredRoles(newRoles);
+  return newRoles;
+}
+
+export function setAllRolePermissions(roleKey: string, enableAll: boolean): Record<string, SystemRole> {
+  const roles = getStoredRoles();
+  const role = roles[roleKey];
+  if (!role || role.isSuperAdmin) return roles;
+
+  const newRoles = {
+    ...roles,
+    [roleKey]: {
+      ...role,
+      defaultPermissions: enableAll ? PERMISSIONS_TREE.map((p) => p.id) : [],
+    },
+  };
+  saveStoredRoles(newRoles);
+  return newRoles;
+}
+
+export function resetRolesToDefaults(): Record<string, SystemRole> {
+  if (typeof window !== "undefined") {
+    localStorage.removeItem(ROLES_STORAGE_KEY);
+  }
+  return { ...DEFAULT_SYSTEM_ROLES };
+}
+
+// 4. PERSISTENT STORAGE HELPERS FOR USER OVERRIDES
+export interface UserPermissionOverride {
+  granted: string[]; // Force Allow
+  denied: string[];  // Force Deny (Revoke)
+}
+
+export function getStoredUserOverrides(): Record<string, UserPermissionOverride> {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = localStorage.getItem(USER_OVERRIDES_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+export function saveStoredUserOverrides(overrides: Record<string, UserPermissionOverride>): void {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(USER_OVERRIDES_STORAGE_KEY, JSON.stringify(overrides));
+  } catch (err) {
+    console.error("Failed to save user overrides", err);
+  }
+}
+
+export function getUserOverrides(userId: string): UserPermissionOverride {
+  const all = getStoredUserOverrides();
+  return all[userId] || { granted: [], denied: [] };
+}
+
+export function setUserPermissionOverride(
+  userId: string,
+  permissionId: string,
+  action: "inherit" | "grant" | "deny"
+): Record<string, UserPermissionOverride> {
+  const all = getStoredUserOverrides();
+  const current = all[userId] || { granted: [], denied: [] };
+
+  let granted = current.granted.filter((id) => id !== permissionId);
+  let denied = current.denied.filter((id) => id !== permissionId);
+
+  if (action === "grant") {
+    granted.push(permissionId);
+  } else if (action === "deny") {
+    denied.push(permissionId);
+  }
+
+  const updatedAll = {
+    ...all,
+    [userId]: { granted, denied },
+  };
+
+  saveStoredUserOverrides(updatedAll);
+  return updatedAll;
+}
+
+export function resetUserOverrides(userId?: string): Record<string, UserPermissionOverride> {
+  const all = getStoredUserOverrides();
+  if (userId) {
+    delete all[userId];
+    saveStoredUserOverrides(all);
+    return all;
+  }
+  if (typeof window !== "undefined") {
+    localStorage.removeItem(USER_OVERRIDES_STORAGE_KEY);
+  }
+  return {};
+}
+
+// 5. USER PERMISSION RESOLUTION ENGINE
 export interface UserSessionState {
   id: string;
   fullName: string;
   role: string;
-  customGrantedPermissions: string[]; // Specific extra permissions
-  customDeniedPermissions: string[]; // Specific revoked permissions
+  customGrantedPermissions?: string[]; // Specific extra permissions
+  customDeniedPermissions?: string[];  // Specific revoked permissions
 }
 
 export function hasPermission(
@@ -243,14 +438,26 @@ export function hasPermission(
   // Super admin always has everything
   if (user.role === "SUPER_ADMIN") return true;
 
+  // Check persistent overrides if available
+  const userOverride = getUserOverrides(user.id);
+  const effectiveDenied = [
+    ...(user.customDeniedPermissions || []),
+    ...(userOverride.denied || []),
+  ];
+  const effectiveGranted = [
+    ...(user.customGrantedPermissions || []),
+    ...(userOverride.granted || []),
+  ];
+
   // Direct denial override wins first
-  if (user.customDeniedPermissions?.includes(permissionId)) return false;
+  if (effectiveDenied.includes(permissionId)) return false;
 
   // Direct custom grant override wins next
-  if (user.customGrantedPermissions?.includes(permissionId)) return true;
+  if (effectiveGranted.includes(permissionId)) return true;
 
-  // Otherwise check base role permissions
-  const role = SYSTEM_ROLES[user.role];
+  // Otherwise check stored roles or default base role permissions
+  const roles = getStoredRoles();
+  const role = roles[user.role] || DEFAULT_SYSTEM_ROLES[user.role];
   if (!role) return false;
 
   return role.defaultPermissions.includes(permissionId);

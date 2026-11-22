@@ -20,22 +20,22 @@ export interface AuthUser {
 export const ROLE_LABELS: Record<AuthRole, { ar: string; badgeClass: string; color: string }> = {
   JOB_SEEKER: {
     ar: "باحث عن عمل / مستقل",
-    badgeClass: "bg-gold-500/15 text-gold-300 border-gold-500/30",
+    badgeClass: "bg-amber-100 text-amber-950 border-amber-300 dark:bg-amber-500/15 dark:text-amber-300 dark:border-amber-500/30 font-bold",
     color: "#D4AF37",
   },
   EMPLOYER: {
     ar: "صاحب عمل / شركة",
-    badgeClass: "bg-blue-500/15 text-blue-300 border-blue-500/30",
+    badgeClass: "bg-blue-100 text-blue-950 border-blue-300 dark:bg-blue-500/15 dark:text-blue-300 dark:border-blue-500/30 font-bold",
     color: "#3B82F6",
   },
   SUPER_ADMIN: {
     ar: "مدير النظام العام (Super Admin)",
-    badgeClass: "bg-purple-500/15 text-purple-300 border-purple-500/30",
-    color: "#A855F7",
+    badgeClass: "bg-amber-200 text-amber-950 border-amber-400 dark:bg-gold-500/25 dark:text-gold-200 dark:border-gold-500/50 font-black",
+    color: "#D4AF37",
   },
   CONTENT_EDITOR: {
     ar: "محرر وكاتب محتوى",
-    badgeClass: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30",
+    badgeClass: "bg-emerald-100 text-emerald-950 border-emerald-300 dark:bg-emerald-500/15 dark:text-emerald-300 dark:border-emerald-500/30 font-bold",
     color: "#10B981",
   },
 };
