@@ -20,6 +20,7 @@ interface JobItem {
   aiMatch: number;
   description: string;
   skills: string[];
+  postedBy?: "SUPER_ADMIN" | "EMPLOYER";
 }
 
 const JOBS_DATA: JobItem[] = [
@@ -109,13 +110,31 @@ export default function JobsPage() {
   const [isActivationOpen, setIsActivationOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [jobsList, setJobsList] = useState<JobItem[]>(JOBS_DATA);
   const [activeJobModal, setActiveJobModal] = useState<JobItem | null>(null);
   const [proposalBid, setProposalBid] = useState("");
   const [proposalDays, setProposalDays] = useState("10");
   const [proposalCover, setProposalCover] = useState("");
   const [proposalSubmitted, setProposalSubmitted] = useState(false);
 
-  const filteredJobs = JOBS_DATA.filter((job) => {
+  // Load custom jobs posted by Super Admin or Employers
+  React.useEffect(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const stored = localStorage.getItem("renderlancer_custom_jobs");
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setJobsList([...parsed, ...JOBS_DATA]);
+          }
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+  }, []);
+
+  const filteredJobs = jobsList.filter((job) => {
     const matchesCategory = selectedCategory === "all" || job.category === selectedCategory;
     const matchesSearch =
       job.title.includes(searchQuery) ||
@@ -253,6 +272,18 @@ export default function JobsPage() {
                   <span className="px-3 py-1 rounded-full bg-gold-500/10 text-gold-400 border border-gold-500/30 text-[10px] font-bold">
                     {job.aiMatch}% مطابقة مع كفاءات فلسطين
                   </span>
+                  {job.postedBy === "SUPER_ADMIN" && (
+                    <span className="px-3 py-1 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/40 text-[10px] font-bold flex items-center gap-1">
+                      <span className="material-symbols-outlined text-[13px]">verified</span>
+                      <span>موثق من إدارة Render (Super Admin)</span>
+                    </span>
+                  )}
+                  {job.postedBy === "EMPLOYER" && (
+                    <span className="px-3 py-1 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 text-[10px] font-bold flex items-center gap-1">
+                      <span className="material-symbols-outlined text-[13px]">corporate_fare</span>
+                      <span>شركة مسجلة ومعتمدة</span>
+                    </span>
+                  )}
                   {job.isDiasporaSponsor && (
                     <span className="px-3 py-1 rounded-full bg-blue-500/15 text-blue-300 border border-blue-500/30 text-[10px] font-bold flex items-center gap-1">
                       <span className="material-symbols-outlined text-[13px]">handshake</span>

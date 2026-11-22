@@ -92,8 +92,29 @@ export default function EmployerDashboardPage() {
   const [newJobTitle, setNewJobTitle] = useState("");
   const [newJobBudget, setNewJobBudget] = useState("1000");
   const [newJobCategory, setNewJobCategory] = useState("dev");
+  const [newJobDuration, setNewJobDuration] = useState("14 يوماً");
+  const [newJobSkills, setNewJobSkills] = useState("Next.js 15, TypeScript, Tailwind");
+  const [newJobDesc, setNewJobDesc] = useState("نبحث عن مهندس برمجيات محترف لتطوير هذا المشروع بجودة عالية وتسليمه وفق المعايير المعتمدة.");
   const [isDiasporaBadge, setIsDiasporaBadge] = useState(true);
   const [postJobSuccess, setPostJobSuccess] = useState(false);
+  const [myPostedJobs, setMyPostedJobs] = useState<any[]>([]);
+
+  // Load Company Posted Jobs
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const stored = localStorage.getItem("renderlancer_custom_jobs");
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed)) {
+            setMyPostedJobs(parsed);
+          }
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+  }, [postJobSuccess]);
 
   const handleAcceptApplicant = (id: string) => {
     setApplicants((prev) =>
@@ -110,10 +131,40 @@ export default function EmployerDashboardPage() {
   const handlePostJob = (e: React.FormEvent) => {
     e.preventDefault();
     setPostJobSuccess(true);
+
+    if (typeof window !== "undefined") {
+      try {
+        const stored = localStorage.getItem("renderlancer_custom_jobs");
+        const list = stored ? JSON.parse(stored) : [];
+        const newJob = {
+          id: `job-emp-${Date.now()}`,
+          title: newJobTitle,
+          company: activeUser?.companyName || activeUser?.fullName || "مجموعة الأفق الرقمية",
+          companyLocation: activeUser?.location || "الشتات الفلسطيني • دبي",
+          isDiasporaSponsor: isDiasporaBadge,
+          category: newJobCategory,
+          budget: `$${newJobBudget}.00`,
+          duration: newJobDuration,
+          postedTime: "الآن",
+          proposalsCount: 0,
+          aiMatch: 97,
+          description: newJobDesc,
+          skills: newJobSkills.split(",").map((s) => s.trim()).filter(Boolean),
+          postedBy: "EMPLOYER",
+        };
+        const updated = [newJob, ...list];
+        localStorage.setItem("renderlancer_custom_jobs", JSON.stringify(updated));
+        setMyPostedJobs(updated);
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
     setTimeout(() => {
       setPostJobSuccess(false);
       setIsPostJobOpen(false);
       setNewJobTitle("");
+      setActiveTab("my_jobs");
     }, 1200);
   };
 
@@ -456,10 +507,72 @@ export default function EmployerDashboardPage() {
           {/* Tab 3: My Jobs */}
           {activeTab === "my_jobs" && (
             <div className="p-6 rounded-2xl bg-dark-900 border border-gold-500/20 space-y-4">
-              <h3 className="text-base font-bold text-white">إدارة الوظائف التي نشرتها</h3>
-              <p className="text-xs text-gray-400">
-                لديك 4 وظائف نشطة تستقبل عروضاً حالياً. انقر على زر "نشر وظيفة جديدة" بالأعلى لإضافة مشروع آخر.
-              </p>
+              <div className="flex items-center justify-between pb-3 border-b border-gold-500/15">
+                <div>
+                  <h3 className="text-base font-bold text-white flex items-center gap-2">
+                    <span className="material-symbols-outlined text-gold-400 text-[20px]">work</span>
+                    إدارة ومتابعة المشاريع والوظائف المنشورة
+                  </h3>
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    المشاريع المنشورة باسم شركتك والمتاحة للمستقلين في سوق العمل
+                  </p>
+                </div>
+                <button
+                  onClick={() => setIsPostJobOpen(true)}
+                  className="px-4 py-2 rounded-xl gold-button-gradient text-dark-950 font-bold text-xs flex items-center gap-1.5 shadow-md"
+                >
+                  <span className="material-symbols-outlined text-[16px]">add</span>
+                  <span>نشر مشروع جديد</span>
+                </button>
+              </div>
+
+              {myPostedJobs.length === 0 ? (
+                <div className="p-8 rounded-2xl bg-dark-950/60 border border-gold-500/15 text-center space-y-2">
+                  <span className="material-symbols-outlined text-gray-500 text-[36px]">work_outline</span>
+                  <p className="text-xs text-gray-400">لم تقم بنشر أي مشاريع مخصصة بعد.</p>
+                  <button
+                    onClick={() => setIsPostJobOpen(true)}
+                    className="text-xs text-gold-400 hover:underline font-bold"
+                  >
+                    انقر هنا لنشر أول مشروع لشركتك
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {myPostedJobs.map((job) => (
+                    <div
+                      key={job.id}
+                      className="p-4 rounded-xl bg-dark-950/80 border border-gold-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                    >
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-bold text-white">{job.title}</span>
+                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 font-semibold">
+                            نشط ويستقبل العروض
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-400 line-clamp-1">{job.description}</p>
+                        <div className="flex items-center gap-2 text-[11px] text-gray-400">
+                          <span>الميزانية: <strong className="text-emerald-400 font-mono">{job.budget}</strong></span>
+                          <span>•</span>
+                          <span>المدة: {job.duration}</span>
+                          <span>•</span>
+                          <span>العروض: {job.proposalsCount || 0} متقدمين</span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <Link
+                          href="/jobs"
+                          className="px-3 py-1.5 rounded-lg bg-dark-850 hover:bg-dark-800 text-gold-400 border border-gold-500/20 text-xs font-semibold"
+                        >
+                          معاينة في السوق
+                        </Link>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
@@ -539,6 +652,46 @@ export default function EmployerDashboardPage() {
                       <option value="marketing">التسويق والمحتوى</option>
                     </select>
                   </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-white mb-1.5">
+                      المدة التقديرية لإنجاز المشروع
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="مثال: 14 يوماً"
+                      value={newJobDuration}
+                      onChange={(e) => setNewJobDuration(e.target.value)}
+                      className="w-full px-3 py-2.5 rounded-xl bg-dark-900 border border-gold-500/30 text-xs text-white focus:outline-none focus:border-gold-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-white mb-1.5">
+                      المهارات المطلوبة (مفصولة بفاصلة)
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Next.js 15, TypeScript, Tailwind"
+                      value={newJobSkills}
+                      onChange={(e) => setNewJobSkills(e.target.value)}
+                      className="w-full px-3 py-2.5 rounded-xl bg-dark-900 border border-gold-500/30 text-xs text-white focus:outline-none focus:border-gold-500 font-mono"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-white mb-1.5">
+                    تفاصيل ومتطلبات المشروع
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={newJobDesc}
+                    onChange={(e) => setNewJobDesc(e.target.value)}
+                    placeholder="اكتب وصفاً دقيقاً للمهام والتسليمات..."
+                    className="w-full px-3 py-2.5 rounded-xl bg-dark-900 border border-gold-500/30 text-xs text-gray-200 focus:outline-none focus:border-gold-500 leading-relaxed"
+                  />
                 </div>
 
                 {/* Diaspora sponsor checkbox */}
