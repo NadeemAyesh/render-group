@@ -43,6 +43,11 @@ export const Footer: React.FC<FooterProps> = ({ onOpenActivation }) => {
             <h4 className="text-sm font-bold text-white mb-3">صفحات المنظومة</h4>
             <ul className="space-y-2 text-xs text-gray-400">
               <li>
+                <Link href="/cv-builder" className="hover:text-gold-400 transition-colors text-gold-400 font-semibold">
+                  صانع السيرة الذاتية (ATS Builder)
+                </Link>
+              </li>
+              <li>
                 <Link href="/ai-studio" className="hover:text-gold-400 transition-colors">
                   استوديو أدوات الـ AI (12 أداة)
                 </Link>

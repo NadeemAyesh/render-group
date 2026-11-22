@@ -185,6 +185,53 @@ export default function AIStudioCatalogPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeModalTool, setActiveModalTool] = useState<AITool | null>(null);
 
+  // Interactive Sandbox State
+  const [sandboxPrompt, setSandboxPrompt] = useState("");
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [sandboxResult, setSandboxResult] = useState<string | null>(null);
+
+  const handleOpenToolModal = (tool: AITool) => {
+    setActiveModalTool(tool);
+    setSandboxResult(null);
+    if (tool.id === "render-chat") {
+      setSandboxPrompt("كيف أصمم معمارية سحابية موثوقة لمنصة عمل حر في فلسطين؟");
+    } else if (tool.id === "prompt-extractor") {
+      setSandboxPrompt("استخرج البرومبت المستخدم في تصميم بوستر تجاري فاخر لمنتج زيت زيتون فلسطيني");
+    } else if (tool.category === "video") {
+      setSandboxPrompt("لقطة سينمائية بطيئة لمدينة القدس عند شروق الشمس، زاوية واسعة بدقة 4K");
+    } else {
+      setSandboxPrompt(`تجربة إخراج فوري باستخدام قدرات أداة ${tool.name}`);
+    }
+  };
+
+  const handleRunSandbox = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!sandboxPrompt.trim()) return;
+    setIsGenerating(true);
+    setSandboxResult(null);
+
+    setTimeout(() => {
+      setIsGenerating(false);
+      if (activeModalTool?.id === "render-chat") {
+        setSandboxResult(
+          `[استجابة Render Chat الفائقة]: تم تحليل طلبك بعناية.\nالتوصية الهندسية: اعتمد على Next.js 15 App Router مع طبقة caching ذكية، وافصل مسارات المصادقة عن قواعد البيانات الخارجية عبر JWT موثق، مع استخدام شبكة Cloudflare للحماية وتخفيض زمن الاستجابة إلى أقل من 75ms في فلسطين والشتات.`
+        );
+      } else if (activeModalTool?.id === "prompt-extractor") {
+        setSandboxResult(
+          `[نتيجة استخراج البرومبت الهندسي]:\nPrompt: "Ultra-luxury Palestinian extra virgin olive oil glass bottle, dark obsidian reflective surface, warm gold ambient backlight, water droplets, 8k resolution, cinematic commercial photography --ar 16:9 --style raw --v 6.1"`
+        );
+      } else if (activeModalTool?.category === "video" || activeModalTool?.category === "motion") {
+        setSandboxResult(
+          `[محرك التوليد السينمائي]: تم توليد لقطة فيديو 4K بدقة 60fps.\nالمعايير: Camera Dolly In 1.5x | Cinematic Depth of Field: f/1.8 | Sound FX: Ambient Wind & Subtle Oud Melody (مكتمل وجاهز للتصدير).`
+        );
+      } else {
+        setSandboxResult(
+          `[مخرجات Render Studio الحية]: تم توليد النتيجة بنجاح فائق وفق أعلى معايير الجودة 4K.\nمعلومات الريندر: GPU: NVIDIA H100 Cloud Cluster | Latency: 1.18s | الدقة: 3840x2160 WebP Lossless.`
+        );
+      }
+    }, 1100);
+  };
+
   const filteredTools = AI_TOOLS_LIST.filter((tool) => {
     const matchesCategory = selectedCategory === "all" || tool.category === selectedCategory;
     const matchesSearch =
@@ -332,7 +379,7 @@ export default function AIStudioCatalogPage() {
               {/* Action Buttons */}
               <div className="pt-3 border-t border-gold-500/15 flex items-center gap-2">
                 <button
-                  onClick={() => setActiveModalTool(tool)}
+                  onClick={() => handleOpenToolModal(tool)}
                   className="flex-1 py-2.5 rounded-xl gold-button-gradient text-dark-950 font-bold text-xs flex items-center justify-center gap-1.5 shadow-md hover:scale-105 transition-transform"
                 >
                   <span className="material-symbols-outlined text-[16px]">play_arrow</span>
@@ -351,10 +398,10 @@ export default function AIStudioCatalogPage() {
         </div>
       </section>
 
-      {/* Tool Preview Modal */}
+      {/* Tool Preview & Live Sandbox Modal */}
       {activeModalTool && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-dark-950/80 backdrop-blur-md animate-fade-in">
-          <div className="glass-card max-w-lg w-full p-6 sm:p-8 rounded-3xl border border-gold-500/40 shadow-2xl space-y-6 relative">
+          <div className="glass-card max-w-xl w-full p-6 sm:p-8 rounded-3xl border border-gold-500/40 shadow-2xl space-y-5 relative max-h-[90vh] overflow-y-auto">
             <button
               onClick={() => setActiveModalTool(null)}
               className="absolute top-5 left-5 text-gray-400 hover:text-white p-1 rounded-lg"
@@ -368,32 +415,76 @@ export default function AIStudioCatalogPage() {
               </div>
               <div>
                 <h3 className="text-xl font-bold text-white">{activeModalTool.name}</h3>
-                <span className="text-xs text-gold-400 font-mono">{activeModalTool.nameEn}</span>
+                <span className="text-xs text-gold-400 font-mono">{activeModalTool.nameEn} • {activeModalTool.categoryAr}</span>
               </div>
             </div>
 
             <p className="text-xs text-gray-300 leading-relaxed">{activeModalTool.desc}</p>
 
-            <div className="p-4 rounded-2xl bg-dark-900 border border-gold-500/20 space-y-2">
-              <h4 className="text-xs font-bold text-white">إمكانيات الأداة المتاحة في حسابك:</h4>
-              <ul className="space-y-1.5 text-xs text-gray-300">
+            {/* Interactive Live Playground */}
+            <form onSubmit={handleRunSandbox} className="p-4 rounded-2xl bg-dark-900/90 border border-gold-500/30 space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-gold-400 flex items-center gap-1.5">
+                  <span className="material-symbols-outlined text-[16px]">terminal</span>
+                  <span>منصة التجربة الحية الفورية (Live AI Sandbox)</span>
+                </label>
+                <span className="text-[10px] text-emerald-400 font-semibold bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                  فترة تجريبية مجانية
+                </span>
+              </div>
+
+              <textarea
+                rows={2}
+                value={sandboxPrompt}
+                onChange={(e) => setSandboxPrompt(e.target.value)}
+                placeholder="أدخل برومبت أو سؤال للتجربة المباشرة..."
+                className="w-full px-3 py-2 rounded-xl bg-dark-950 border border-gold-500/20 text-xs text-white focus:outline-none focus:border-gold-500 leading-relaxed"
+              />
+
+              <div className="flex items-center justify-between">
+                <button
+                  type="submit"
+                  disabled={isGenerating || !sandboxPrompt.trim()}
+                  className="px-5 py-2 rounded-xl gold-button-gradient text-dark-950 font-bold text-xs flex items-center gap-1.5 shadow-md hover:scale-105 transition-transform disabled:opacity-50"
+                >
+                  <span className="material-symbols-outlined text-[16px]">
+                    {isGenerating ? "hourglass_empty" : "bolt"}
+                  </span>
+                  <span>{isGenerating ? "جاري المعالجة السحابية..." : "تشغيل النموذج وتوليد النتيجة"}</span>
+                </button>
+                <span className="text-[10px] text-gray-400 font-mono">
+                  {activeModalTool.creditsRequired}
+                </span>
+              </div>
+
+              {/* Output Box */}
+              {sandboxResult && (
+                <div className="p-3.5 rounded-xl bg-dark-950 border border-gold-500/40 text-xs text-gray-200 font-mono whitespace-pre-line leading-relaxed space-y-2 mt-3 animate-fade-in">
+                  <div className="flex items-center justify-between border-b border-gold-500/20 pb-1.5 text-[10px] text-gold-400">
+                    <span className="flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                      <span>Output Result (Ready)</span>
+                    </span>
+                    <span>NVIDIA H100 GPU Cluster</span>
+                  </div>
+                  <p>{sandboxResult}</p>
+                </div>
+              )}
+            </form>
+
+            <div className="p-3.5 rounded-2xl bg-dark-900 border border-gold-500/15 space-y-1.5">
+              <h4 className="text-xs font-bold text-white">إمكانيات الأداة المتاحة:</h4>
+              <ul className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-xs text-gray-300">
                 {activeModalTool.capabilities.map((c, idx) => (
-                  <li key={idx} className="flex items-center gap-2">
-                    <span className="material-symbols-outlined text-emerald-400 text-[16px]">check_circle</span>
+                  <li key={idx} className="flex items-center gap-1.5 text-[11px]">
+                    <span className="material-symbols-outlined text-emerald-400 text-[14px]">check_circle</span>
                     <span>{c}</span>
                   </li>
                 ))}
               </ul>
             </div>
 
-            <div className="space-y-3">
-              <Link
-                href="/login"
-                className="w-full py-3 rounded-xl gold-button-gradient text-dark-950 font-bold text-xs flex items-center justify-center gap-2 shadow-lg"
-              >
-                <span>الدخول إلى لوحة التحكم وتشغيل المحرك السحابي</span>
-                <span className="material-symbols-outlined text-[16px]">arrow_back</span>
-              </Link>
+            <div className="space-y-2 pt-1">
               <button
                 onClick={() => {
                   setActiveModalTool(null);
@@ -401,7 +492,7 @@ export default function AIStudioCatalogPage() {
                 }}
                 className="w-full py-2.5 rounded-xl bg-dark-900 text-gold-400 border border-gold-500/30 text-xs font-semibold hover:text-white"
               >
-                لديك كود تفعيل خاص بالأداة؟ أدخله هنا
+                تفعيل الباقة غير المحدودة برمز تفعيل (Code)
               </button>
             </div>
           </div>

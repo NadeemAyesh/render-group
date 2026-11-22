@@ -111,6 +111,7 @@ export default function JobsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeJobModal, setActiveJobModal] = useState<JobItem | null>(null);
   const [proposalBid, setProposalBid] = useState("");
+  const [proposalDays, setProposalDays] = useState("10");
   const [proposalCover, setProposalCover] = useState("");
   const [proposalSubmitted, setProposalSubmitted] = useState(false);
 
@@ -126,6 +127,7 @@ export default function JobsPage() {
   const handleOpenProposal = (job: JobItem) => {
     setActiveJobModal(job);
     setProposalBid(job.budget.replace("$", "").replace(".00", ""));
+    setProposalDays(job.duration.replace(" يوماً", "").replace(" أيام", "").replace(" يوم", ""));
     setProposalCover(
       `تحياتي لشركة ${job.company}،\nاطلعت على متطلبات مشروع "${job.title}"، وبفضل خبرتي العميقة في هذه التقنيات يسعدني تنفيذ العمل بأعلى معايير الجودة وتسليم المشروع في الموعد المحدد مع الدعم الكامل.`
     );
@@ -135,6 +137,26 @@ export default function JobsPage() {
   const handleSendProposal = (e: React.FormEvent) => {
     e.preventDefault();
     setProposalSubmitted(true);
+
+    if (typeof window !== "undefined" && activeJobModal) {
+      try {
+        const stored = localStorage.getItem("renderlancer_proposals");
+        const list = stored ? JSON.parse(stored) : [];
+        const newRecord = {
+          id: `prop-${Date.now()}`,
+          jobTitle: activeJobModal.title,
+          company: activeJobModal.company,
+          amount: `$${proposalBid}.00`,
+          days: `${proposalDays} أيام`,
+          status: "قيد المراجعة الفنية",
+          statusClass: "bg-gold-500/15 text-gold-300 border-gold-500/30",
+        };
+        localStorage.setItem("renderlancer_proposals", JSON.stringify([newRecord, ...list]));
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
     setTimeout(() => {
       setProposalSubmitted(false);
       setActiveJobModal(null);
@@ -334,10 +356,11 @@ export default function JobsPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-white mb-1">المدة المتوقعة</label>
+                    <label className="block text-xs font-bold text-white mb-1">المدة المتوقعة (أيام)</label>
                     <input
                       type="text"
-                      defaultValue={activeJobModal.duration}
+                      value={proposalDays}
+                      onChange={(e) => setProposalDays(e.target.value)}
                       className="w-full px-3 py-2 rounded-xl bg-dark-900 border border-gold-500/30 text-xs text-white focus:outline-none focus:border-gold-500"
                     />
                   </div>

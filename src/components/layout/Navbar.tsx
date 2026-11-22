@@ -105,6 +105,10 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenActivation }) => {
               <Link href="/" className="hover:text-gold-400 transition-colors">
                 الرئيسية
               </Link>
+              <Link href="/cv-builder" className="hover:text-gold-400 transition-colors flex items-center gap-1.5 text-gold-400 font-semibold">
+                <span className="material-symbols-outlined text-[18px]">description</span>
+                صانع السيرة الذاتية (ATS)
+              </Link>
               <Link href="/ai-studio" className="hover:text-gold-400 transition-colors flex items-center gap-1.5 text-gold-300 font-semibold">
                 <span className="material-symbols-outlined text-[18px] text-gold-500">token</span>
                 استوديو أدوات الـ AI

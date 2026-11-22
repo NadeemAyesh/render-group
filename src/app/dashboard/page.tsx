@@ -59,8 +59,49 @@ const MOCK_JOBS: MockJob[] = [
   },
 ];
 
+interface ProposalRecord {
+  id: string;
+  jobTitle: string;
+  company: string;
+  amount: string;
+  days: string;
+  status: string;
+  statusClass?: string;
+}
+
+const DEFAULT_PROPOSALS: ProposalRecord[] = [
+  {
+    id: "prop-1",
+    jobTitle: "تطوير لوحة تحكم سحابية لشركة عقارية",
+    company: "مجموعة الاستثمار (القدس)",
+    amount: "$900.00",
+    days: "10 أيام",
+    status: "تم قبولك • بانتظار بدء العمل",
+    statusClass: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
+  },
+  {
+    id: "prop-2",
+    jobTitle: "تصميم واجهات وتجربة مستخدم لتطبيق تجارة",
+    company: "دار المعمار (الدوحة)",
+    amount: "$400.00",
+    days: "5 أيام",
+    status: "قيد المراجعة الفنية",
+    statusClass: "bg-gold-500/15 text-gold-300 border-gold-500/30",
+  },
+  {
+    id: "prop-3",
+    jobTitle: "تدقيق وحماية أمنية لمتجر إلكتروني",
+    company: "شبكة رواد الأعمال (لندن)",
+    amount: "$650.00",
+    days: "7 أيام",
+    status: "مقابلة مجدولة غداً",
+    statusClass: "bg-blue-500/15 text-blue-300 border-blue-500/30",
+  },
+];
+
 export default function TalentDashboardPage() {
   const { currentUser } = useAuth();
+  const [proposalsList, setProposalsList] = useState<ProposalRecord[]>(DEFAULT_PROPOSALS);
   const [selectedJobForProposal, setSelectedJobForProposal] = useState<MockJob | null>(null);
   const [proposalRate, setProposalRate] = useState<string>("1100");
   const [proposalDays, setProposalDays] = useState<string>("12");
@@ -69,6 +110,23 @@ export default function TalentDashboardPage() {
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submittedSuccess, setSubmittedSuccess] = useState(false);
+
+  // Load custom proposals submitted across the platform
+  React.useEffect(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const stored = localStorage.getItem("renderlancer_proposals");
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setProposalsList([...parsed, ...DEFAULT_PROPOSALS]);
+          }
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+  }, []);
 
   // Check Action-level permissions
   const canSubmitProposal = hasPermission(currentUser, "action.jobs.submit_proposal");
@@ -83,6 +141,24 @@ export default function TalentDashboardPage() {
   const handleSendProposal = () => {
     setIsSubmitting(true);
     setTimeout(() => {
+      if (selectedJobForProposal) {
+        const newRecord: ProposalRecord = {
+          id: `prop-${Date.now()}`,
+          jobTitle: selectedJobForProposal.title,
+          company: selectedJobForProposal.company,
+          amount: `$${proposalRate}.00`,
+          days: `${proposalDays} أيام`,
+          status: "قيد المراجعة الفنية",
+          statusClass: "bg-gold-500/15 text-gold-300 border-gold-500/30",
+        };
+        const updated = [newRecord, ...proposalsList];
+        setProposalsList(updated);
+        try {
+          localStorage.setItem("renderlancer_proposals", JSON.stringify([newRecord]));
+        } catch (e) {
+          console.error(e);
+        }
+      }
       setIsSubmitting(false);
       setSubmittedSuccess(true);
       setTimeout(() => {
@@ -346,48 +422,26 @@ export default function TalentDashboardPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gold-500/10">
-              <tr>
-                <td className="py-3.5 font-bold text-white">تطوير لوحة تحكم سحابية لشركة عقارية</td>
-                <td className="py-3.5 text-gray-300">مجموعة الاستثمار (القدس)</td>
-                <td className="py-3.5 font-mono text-emerald-400 font-bold">$900.00</td>
-                <td className="py-3.5 text-gray-300">10 أيام</td>
-                <td className="py-3.5">
-                  <span className="px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 text-[10px] font-semibold">
-                    تم قبولك • بانتظار بدء العمل
-                  </span>
-                </td>
-                <td className="py-3.5">
-                  <button className="text-gold-400 hover:underline font-bold">عرض العقد</button>
-                </td>
-              </tr>
-              <tr>
-                <td className="py-3.5 font-bold text-white">تصميم واجهات وتجربة مستخدم لتطبيق تجارة</td>
-                <td className="py-3.5 text-gray-300">دار المعمار (الدوحة)</td>
-                <td className="py-3.5 font-mono text-emerald-400 font-bold">$400.00</td>
-                <td className="py-3.5 text-gray-300">5 أيام</td>
-                <td className="py-3.5">
-                  <span className="px-2.5 py-1 rounded-full bg-gold-500/15 text-gold-300 border border-gold-500/30 text-[10px] font-semibold">
-                    قيد المراجعة الفنية
-                  </span>
-                </td>
-                <td className="py-3.5">
-                  <button className="text-gray-400 hover:text-white">تعديل العرض</button>
-                </td>
-              </tr>
-              <tr>
-                <td className="py-3.5 font-bold text-white">تدقيق وحماية أمنية لمتجر إلكتروني</td>
-                <td className="py-3.5 text-gray-300">شبكة رواد الأعمال (لندن)</td>
-                <td className="py-3.5 font-mono text-emerald-400 font-bold">$650.00</td>
-                <td className="py-3.5 text-gray-300">7 أيام</td>
-                <td className="py-3.5">
-                  <span className="px-2.5 py-1 rounded-full bg-blue-500/15 text-blue-300 border border-blue-500/30 text-[10px] font-semibold">
-                    مقابلة مجدولة غداً
-                  </span>
-                </td>
-                <td className="py-3.5">
-                  <button className="text-blue-400 hover:underline font-bold">فتح المحادثة</button>
-                </td>
-              </tr>
+              {proposalsList.map((item) => (
+                <tr key={item.id}>
+                  <td className="py-3.5 font-bold text-white">{item.jobTitle}</td>
+                  <td className="py-3.5 text-gray-300">{item.company}</td>
+                  <td className="py-3.5 font-mono text-emerald-400 font-bold">{item.amount}</td>
+                  <td className="py-3.5 text-gray-300">{item.days}</td>
+                  <td className="py-3.5">
+                    <span
+                      className={`px-2.5 py-1 rounded-full text-[10px] font-semibold border ${
+                        item.statusClass || "bg-gold-500/15 text-gold-300 border-gold-500/30"
+                      }`}
+                    >
+                      {item.status}
+                    </span>
+                  </td>
+                  <td className="py-3.5">
+                    <button className="text-gold-400 hover:underline font-bold">تفاصيل العرض</button>
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>

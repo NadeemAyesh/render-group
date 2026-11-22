@@ -50,6 +50,14 @@ export default function HomePage() {
               </Link>
 
               <Link
+                href="/cv-builder"
+                className="px-6 py-3.5 rounded-xl bg-dark-900 hover:bg-dark-850 text-gold-400 border border-gold-500/40 font-bold text-xs md:text-sm flex items-center gap-2 transition-colors shadow-lg"
+              >
+                <span className="material-symbols-outlined text-[20px] text-gold-400">description</span>
+                <span>صانع السيرة الذاتية (ATS)</span>
+              </Link>
+
+              <Link
                 href="/ai-studio"
                 className="px-6 py-3.5 rounded-xl bg-dark-900 hover:bg-dark-850 text-gold-300 border border-gold-500/30 font-bold text-xs md:text-sm flex items-center gap-2 transition-colors"
               >

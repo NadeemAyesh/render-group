@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import Link from "next/link";
 
 export const CvShowcase: React.FC = () => {
   const [atsScore, setAtsScore] = useState<number>(98);
@@ -82,13 +83,20 @@ export const CvShowcase: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex items-center gap-4 pt-2">
+          <div className="flex flex-wrap items-center gap-4 pt-2">
+            <Link
+              href="/cv-builder"
+              className="px-6 py-3.5 rounded-xl gold-button-gradient text-dark-950 font-bold text-sm flex items-center gap-2 hover:scale-105 transition-transform shadow-lg shadow-gold-500/20"
+            >
+              <span>افتح صانع السير الذاتية الآن (ATS Builder)</span>
+              <span className="material-symbols-outlined text-[18px]">arrow_back</span>
+            </Link>
             <button
               onClick={handleSimulateEnhance}
-              className="px-6 py-3.5 rounded-xl gold-button-gradient text-dark-950 font-bold text-sm flex items-center gap-2"
+              className="px-4 py-3.5 rounded-xl bg-dark-900 hover:bg-dark-850 text-gold-300 border border-gold-500/30 font-bold text-xs flex items-center gap-1.5 transition-colors"
             >
-              <span>{isEnhancing ? "جاري تحسين الصياغة بالـ AI..." : "ابنِ سيرتك الذاتية مجاناً الآن"}</span>
-              <span className="material-symbols-outlined text-[18px]">arrow_back</span>
+              <span className="material-symbols-outlined text-[16px]">magic_button</span>
+              <span>{isEnhancing ? "جاري تحسين الصياغة..." : "تجربة صياغة الذكاء"}</span>
             </button>
             <span className="text-xs text-gray-400">بدون رسوم خفية • جاهز للتصدير فوراً</span>
           </div>
