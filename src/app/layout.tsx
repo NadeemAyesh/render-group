@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { IBM_Plex_Sans_Arabic } from "next/font/google";
 import "./globals.css";
+import { FloatingSupportWidget } from "@/components/support/FloatingSupportWidget";
+import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
 
 const ibmPlexArabic = IBM_Plex_Sans_Arabic({
   subsets: ["arabic", "latin"],
@@ -58,6 +60,8 @@ export default function RootLayout({
       </head>
       <body className="font-sans antialiased selection:bg-gold-500 selection:text-dark-950 transition-colors duration-200">
         {children}
+        <MobileBottomNav />
+        <FloatingSupportWidget />
       </body>
     </html>
   );

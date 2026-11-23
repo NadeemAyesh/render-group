@@ -101,6 +101,14 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenActivation }) => {
       label: "الشركات والجهات",
     },
     {
+      href: "/faq",
+      label: "الأسئلة الشائعة",
+    },
+    {
+      href: "/contact",
+      label: "اتصل بنا",
+    },
+    {
       href: "/about",
       label: "من نحن",
     },

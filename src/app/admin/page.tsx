@@ -61,6 +61,7 @@ import {
 } from "@/lib/permissions";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { CoursesAdminSection } from "@/components/admin/CoursesAdminSection";
+import { SupportAdminSection } from "@/components/admin/SupportAdminSection";
 import { ActionIconButton } from "@/components/ui/ActionIconButton";
 import { getCourses, getSubmissions } from "@/lib/courses-service";
 
@@ -127,7 +128,7 @@ export default function SuperAdminDashboardPage() {
   const router = useRouter();
   const [activeUser, setActiveUser] = useState<AuthUser | null>(null);
   const [activeTab, setActiveTab] = useState<
-    "overview" | "users" | "jobs" | "platforms" | "cms" | "escrow" | "subscriptions" | "permissions" | "courses" | "settings"
+    "overview" | "users" | "jobs" | "platforms" | "cms" | "escrow" | "subscriptions" | "permissions" | "courses" | "support" | "settings"
   >("overview");
   const [pendingSubmissionsCount, setPendingSubmissionsCount] = useState<number>(0);
   const [coursesCount, setCoursesCount] = useState<number>(0);
@@ -820,6 +821,23 @@ export default function SuperAdminDashboardPage() {
             </button>
 
             <button
+              onClick={() => setActiveTab("support")}
+              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all ${
+                activeTab === "support"
+                  ? "bg-amber-500/15 dark:bg-amber-500/20 text-amber-950 dark:text-amber-200 border border-amber-500/40 font-bold shadow-xs"
+                  : "text-slate-700 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-dark-850 hover:text-slate-950 dark:hover:text-white"
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <span className="material-symbols-outlined text-[18px] text-amber-500">support_agent</span>
+                <span>الدعم الفني ووكيل الـ AI</span>
+              </div>
+              <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 text-[10px] font-mono border border-emerald-500/20">
+                AI &amp; Help
+              </span>
+            </button>
+
+            <button
               onClick={() => setActiveTab("settings")}
               className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all ${
                 activeTab === "settings"
@@ -875,6 +893,7 @@ export default function SuperAdminDashboardPage() {
                 {activeTab === "escrow" && "سجل الضمان المالي وسحوبات أرباح فلسطين"}
                 {activeTab === "permissions" && "شجرة ومصفوفة الصلاحيات الهرمية (RBAC)"}
                 {activeTab === "courses" && "إدارة أكاديمية الدورات ومتابعة وتصحيح التكليفات"}
+                {activeTab === "support" && "إدارة الدعم الفني ووكيل الـ AI وقنوات التواصل والـ FAQ"}
                 {activeTab === "settings" && "إعدادات وتشغيل المنظومة والموقع العام"}
               </span>
             </h1>
@@ -3262,6 +3281,26 @@ export default function SuperAdminDashboardPage() {
                         className="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-dark-950 border border-slate-200 dark:border-dark-700 text-xs font-mono text-slate-900 dark:text-white focus:bg-white focus:border-amber-500 outline-none transition-all"
                       />
                     </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-800 dark:text-gray-200 mb-1">رابط فيسبوك الرسمي (Facebook)</label>
+                      <input
+                        type="url"
+                        value={siteSettingsForm.officialFacebook || ""}
+                        onChange={(e) => setSiteSettingsForm({ ...siteSettingsForm, officialFacebook: e.target.value })}
+                        className="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-dark-950 border border-slate-200 dark:border-dark-700 text-xs font-mono text-slate-900 dark:text-white focus:bg-white focus:border-amber-500 outline-none transition-all"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-800 dark:text-gray-200 mb-1">رابط إنستغرام الرسمي (Instagram)</label>
+                      <input
+                        type="url"
+                        value={siteSettingsForm.officialInstagram || ""}
+                        onChange={(e) => setSiteSettingsForm({ ...siteSettingsForm, officialInstagram: e.target.value })}
+                        className="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-dark-950 border border-slate-200 dark:border-dark-700 text-xs font-mono text-slate-900 dark:text-white focus:bg-white focus:border-amber-500 outline-none transition-all"
+                      />
+                    </div>
                   </div>
                 </div>
 
@@ -3285,6 +3324,11 @@ export default function SuperAdminDashboardPage() {
 
               </form>
             </div>
+          )}
+
+          {/* TAB: SUPPORT & AI AGENT MANAGEMENT */}
+          {activeTab === "support" && (
+            <SupportAdminSection />
           )}
 
         </main>

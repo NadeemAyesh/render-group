@@ -55,6 +55,119 @@ html:not(.dark) body {
   color: #0F172A !important;
 }
 
+/* ATS / CV Printable Sheet & Document Previews:
+   Keep the resume preview sheet pristine and high-contrast in both Light & Dark modes.
+   When the user is in Light Mode, the dark resume template sheet must retain its white/gold text! */
+html:not(.dark) #printable-cv,
+html:not(.dark) [data-resume-sheet="true"] {
+  background-color: #0A0D14 !important;
+  color: #E2E8F0 !important;
+}
+
+html:not(.dark) #printable-cv.template-slate,
+html:not(.dark) [data-resume-sheet="true"].template-slate {
+  background-color: #0F172A !important;
+  color: #F1F5F9 !important;
+}
+
+html:not(.dark) #printable-cv h2,
+html:not(.dark) #printable-cv strong,
+html:not(.dark) #printable-cv .text-white,
+html:not(.dark) [data-resume-sheet="true"] h2,
+html:not(.dark) [data-resume-sheet="true"] strong,
+html:not(.dark) [data-resume-sheet="true"] .text-white {
+  color: #FFFFFF !important;
+}
+
+html:not(.dark) #printable-cv .text-gold-400,
+html:not(.dark) [data-resume-sheet="true"] .text-gold-400 {
+  color: #FBBF24 !important;
+}
+
+html:not(.dark) #printable-cv .text-gold-300,
+html:not(.dark) [data-resume-sheet="true"] .text-gold-300 {
+  color: #FDE68A !important;
+}
+
+html:not(.dark) #printable-cv .text-gray-200,
+html:not(.dark) [data-resume-sheet="true"] .text-gray-200 {
+  color: #E2E8F0 !important;
+}
+
+html:not(.dark) #printable-cv .text-gray-300,
+html:not(.dark) [data-resume-sheet="true"] .text-gray-300 {
+  color: #CBD5E1 !important;
+}
+
+html:not(.dark) #printable-cv .text-gray-400,
+html:not(.dark) [data-resume-sheet="true"] .text-gray-400 {
+  color: #94A3B8 !important;
+}
+
+html:not(.dark) #printable-cv .bg-gold-500\/15,
+html:not(.dark) [data-resume-sheet="true"] .bg-gold-500\/15 {
+  background-color: rgba(212, 175, 55, 0.15) !important;
+  border-color: rgba(212, 175, 55, 0.3) !important;
+  color: #FDE68A !important;
+}
+
+html:not(.dark) #printable-cv .bg-dark-900,
+html:not(.dark) [data-resume-sheet="true"] .bg-dark-900 {
+  background-color: #111622 !important;
+  color: #E2E8F0 !important;
+  box-shadow: none !important;
+}
+
+/* Print Media Query for Clean Paper/PDF Export */
+@media print {
+  body {
+    background: #FFFFFF !important;
+    color: #000000 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  #printable-cv {
+    border: none !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    background: #FFFFFF !important;
+    color: #0F172A !important;
+  }
+
+  #printable-cv h2,
+  #printable-cv strong,
+  #printable-cv .text-white {
+    color: #0F172A !important;
+  }
+
+  #printable-cv .text-gold-400,
+  #printable-cv .text-gold-500 {
+    color: #996515 !important;
+  }
+
+  #printable-cv .text-gray-200,
+  #printable-cv .text-gray-300,
+  #printable-cv .text-gray-400 {
+    color: #334155 !important;
+  }
+
+  #printable-cv .bg-dark-900,
+  #printable-cv .bg-dark-850 {
+    background-color: #F1F5F9 !important;
+    border-color: #CBD5E1 !important;
+    color: #0F172A !important;
+  }
+}
+
 /* Surfaces */
 html:not(.dark) .bg-dark-950 {
   background-color: #FDFBF7 !important;
@@ -490,4 +603,15 @@ html.dark .gold-gradient-text {
 
 .tool-card:hover .card-shimmer {
   animation: card-light-sweep 1.2s ease-out;
+}
+
+/* Safe area padding for mobile bottom bar */
+.safe-area-pb {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+@media (max-width: 1279px) {
+  body {
+    padding-bottom: 72px;
+  }
 }

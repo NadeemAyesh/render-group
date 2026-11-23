@@ -25,7 +25,7 @@ export default function HomePage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-dark-950 text-gray-100 selection:bg-gold-500 selection:text-dark-950 font-sans">
+    <div className="min-h-screen bg-slate-50 dark:bg-dark-950 text-slate-900 dark:text-gray-100 selection:bg-gold-500 selection:text-dark-950 font-sans transition-colors duration-200">
       <Navbar onOpenActivation={() => setIsActivationOpen(true)} />
 
       <main>
@@ -483,20 +483,20 @@ export default function HomePage() {
         </section>
 
         {/* ================= ACADEMY COURSES & PRACTICAL ASSIGNMENTS ================= */}
-        <section className="py-20 border-t border-gold-500/15 bg-gradient-to-b from-dark-900/70 via-dark-950 to-dark-950">
+        <section className="py-20 border-t border-gold-500/15 bg-gradient-to-b from-amber-500/5 via-slate-50 to-slate-50 dark:from-dark-900/70 dark:via-dark-950 dark:to-dark-950">
           <div className="max-w-7xl mx-auto px-6">
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
               <div>
-                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-bold mb-3 shadow-sm">
-                  <span className="material-symbols-outlined text-[18px] text-amber-400">school</span>
+                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-300 text-xs font-bold mb-3 shadow-sm">
+                  <span className="material-symbols-outlined text-[18px] text-amber-500 dark:text-amber-400">school</span>
                   <span>أكاديمية ريندر للتدريب الاحترافي</span>
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                  <span className="text-[10px] text-emerald-300 font-mono">YouTube + تسليم تكليفات</span>
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400 animate-pulse"></span>
+                  <span className="text-[10px] text-emerald-700 dark:text-emerald-300 font-mono">YouTube + تسليم تكليفات</span>
                 </div>
-                <h2 className="text-2xl md:text-4xl font-extrabold text-white">
+                <h2 className="text-2xl md:text-4xl font-extrabold text-slate-900 dark:text-white">
                   شروحات يوتيوب تفصيلية مع <span className="gold-gradient-text">متابعة وتصحيح التكليفات</span>
                 </h2>
-                <p className="text-xs md:text-sm text-gray-400 max-w-2xl mt-2.5 leading-relaxed">
+                <p className="text-xs md:text-sm text-slate-600 dark:text-gray-400 max-w-2xl mt-2.5 leading-relaxed">
                   تعلم المهارات المطلوبة في سوق العمل بالمشاهدة عبر يوتيوب، وطبّق تكليفاتك البرمجية والإبداعية على المنصة مع تصحيح وملاحظات مباشرة من Super Admin ومدربي ريندر.
                 </p>
               </div>
@@ -514,41 +514,41 @@ export default function HomePage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               
               {/* Card 1: Eng. Azza Aljamal - SketchUp */}
-              <div className="p-5 rounded-3xl bg-dark-900 border border-gold-500/25 flex flex-col justify-between hover:border-gold-500/50 hover:shadow-xl transition-all group">
+              <div className="p-5 rounded-3xl bg-white dark:bg-dark-900 border border-gold-500/25 flex flex-col justify-between hover:border-gold-500/50 hover:shadow-xl transition-all group shadow-sm">
                 <div>
-                  <div className="aspect-video w-full rounded-2xl overflow-hidden mb-4 relative bg-dark-950">
+                  <div className="aspect-video w-full rounded-2xl overflow-hidden mb-4 relative bg-slate-900">
                     <img
                       src="https://images.unsplash.com/photo-1503387762-592deb58ef4e?auto=format&fit=crop&w=800&q=80"
                       alt="SketchUp Engineering"
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     />
-                    <div className="absolute top-2.5 right-2.5 px-2 py-0.5 rounded-full bg-red-600/90 text-white text-[10px] font-bold flex items-center gap-1">
+                    <div className="absolute top-2.5 right-2.5 px-2 py-0.5 rounded-full bg-red-600/90 text-white text-[10px] font-bold flex items-center gap-1 shadow-sm">
                       <span className="material-symbols-outlined text-[12px]">smart_display</span>
                       <span>يوتيوب</span>
                     </div>
-                    <div className="absolute bottom-2.5 right-2.5 px-2 py-0.5 rounded-md bg-dark-950/80 text-amber-300 border border-amber-500/30 text-[10px] font-mono">
+                    <div className="absolute bottom-2.5 right-2.5 px-2 py-0.5 rounded-md bg-slate-950/80 text-amber-300 border border-amber-500/30 text-[10px] font-mono backdrop-blur-xs">
                       6 محاضرات • تكليفات مصححة
                     </div>
                   </div>
 
-                  <span className="text-[10px] px-2 py-0.5 rounded bg-purple-500/15 text-purple-300 border border-purple-500/30 font-bold inline-block mb-2">
+                  <span className="text-[10px] px-2 py-0.5 rounded bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30 font-bold inline-block mb-2">
                     النمذجة والرسم الهندسي 3D
                   </span>
-                  <h3 className="text-sm md:text-base font-bold text-white mb-2 leading-snug group-hover:text-gold-300 transition-colors">
+                  <h3 className="text-sm md:text-base font-bold text-slate-900 dark:text-white mb-2 leading-snug group-hover:text-amber-600 dark:group-hover:text-gold-300 transition-colors">
                     مساق الرسم الهندسي المحوسب والنمذجة بـ SketchUp Pro
                   </h3>
-                  <p className="text-xs text-gray-400 line-clamp-2 leading-relaxed mb-4">
+                  <p className="text-xs text-slate-600 dark:text-gray-400 line-clamp-2 leading-relaxed mb-4">
                     تعلم أدوات الرسم والرفع، الكاميرا، المقاطع Section Planes، وتصدير DWG للأوتوكاد مع تكليفات معمارية مصححة على المنصة.
                   </p>
                 </div>
 
                 <div className="pt-3 border-t border-gold-500/15 flex items-center justify-between">
-                  <div className="text-xs text-gray-300">
-                    بإشراف: <strong className="text-white">م. عزة رفعت الجمل (UCAS)</strong>
+                  <div className="text-xs text-slate-600 dark:text-gray-300">
+                    بإشراف: <strong className="text-slate-900 dark:text-white">م. عزة رفعت الجمل (UCAS)</strong>
                   </div>
                   <Link
                     href="/courses/course-sketchup-aljamal"
-                    className="px-3.5 py-1.5 rounded-xl bg-gold-500/15 hover:bg-gold-500 text-gold-300 hover:text-dark-950 font-bold text-xs transition-colors flex items-center gap-1"
+                    className="px-3.5 py-1.5 rounded-xl bg-gold-500/15 hover:bg-gold-500 text-amber-800 dark:text-gold-300 hover:text-dark-950 font-bold text-xs transition-colors flex items-center gap-1"
                   >
                     <span>دخول المساق</span>
                     <span className="material-symbols-outlined text-[14px]">arrow_back</span>
@@ -557,41 +557,41 @@ export default function HomePage() {
               </div>
 
               {/* Card 2 */}
-              <div className="p-5 rounded-3xl bg-dark-900 border border-gold-500/25 flex flex-col justify-between hover:border-gold-500/50 hover:shadow-xl transition-all group">
+              <div className="p-5 rounded-3xl bg-white dark:bg-dark-900 border border-gold-500/25 flex flex-col justify-between hover:border-gold-500/50 hover:shadow-xl transition-all group shadow-sm">
                 <div>
-                  <div className="aspect-video w-full rounded-2xl overflow-hidden mb-4 relative bg-dark-950">
+                  <div className="aspect-video w-full rounded-2xl overflow-hidden mb-4 relative bg-slate-900">
                     <img
                       src="https://images.unsplash.com/photo-1574717024653-61fd2cf4d44d?auto=format&fit=crop&w=800&q=80"
                       alt="Motion AI"
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     />
-                    <div className="absolute top-2.5 right-2.5 px-2 py-0.5 rounded-full bg-red-600/90 text-white text-[10px] font-bold flex items-center gap-1">
+                    <div className="absolute top-2.5 right-2.5 px-2 py-0.5 rounded-full bg-red-600/90 text-white text-[10px] font-bold flex items-center gap-1 shadow-sm">
                       <span className="material-symbols-outlined text-[12px]">smart_display</span>
                       <span>يوتيوب</span>
                     </div>
-                    <div className="absolute bottom-2.5 right-2.5 px-2 py-0.5 rounded-md bg-dark-950/80 text-amber-300 border border-amber-500/30 text-[10px] font-mono">
+                    <div className="absolute bottom-2.5 right-2.5 px-2 py-0.5 rounded-md bg-slate-950/80 text-amber-300 border border-amber-500/30 text-[10px] font-mono backdrop-blur-xs">
                       4 تكليفات عملية
                     </div>
                   </div>
 
-                  <span className="text-[10px] px-2 py-0.5 rounded bg-rose-500/15 text-rose-300 border border-rose-500/30 font-bold inline-block mb-2">
+                  <span className="text-[10px] px-2 py-0.5 rounded bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-500/30 font-bold inline-block mb-2">
                     الموشن جرافيك والمونتاج
                   </span>
-                  <h3 className="text-sm md:text-base font-bold text-white mb-2 leading-snug group-hover:text-gold-300 transition-colors">
+                  <h3 className="text-sm md:text-base font-bold text-slate-900 dark:text-white mb-2 leading-snug group-hover:text-amber-600 dark:group-hover:text-gold-300 transition-colors">
                     دبلوم صناعة المحتوى المرئي والموشن جرافيك بالذكاء الاصطناعي
                   </h3>
-                  <p className="text-xs text-gray-400 line-clamp-2 leading-relaxed mb-4">
+                  <p className="text-xs text-slate-600 dark:text-gray-400 line-clamp-2 leading-relaxed mb-4">
                     تعلم أسرار الإخراج البصري والتحريك السينمائي بأدوات Veo 3.1 و Seedance مع تكليفات مونتاج مصححة.
                   </p>
                 </div>
 
                 <div className="pt-3 border-t border-gold-500/15 flex items-center justify-between">
-                  <div className="text-xs text-gray-300">
-                    بإشراف: <strong className="text-white">م. حمزة رضوان</strong>
+                  <div className="text-xs text-slate-600 dark:text-gray-300">
+                    بإشراف: <strong className="text-slate-900 dark:text-white">م. حمزة رضوان</strong>
                   </div>
                   <Link
                     href="/courses/course-motion-ai"
-                    className="px-3.5 py-1.5 rounded-xl bg-gold-500/15 hover:bg-gold-500 text-gold-300 hover:text-dark-950 font-bold text-xs transition-colors flex items-center gap-1"
+                    className="px-3.5 py-1.5 rounded-xl bg-gold-500/15 hover:bg-gold-500 text-amber-800 dark:text-gold-300 hover:text-dark-950 font-bold text-xs transition-colors flex items-center gap-1"
                   >
                     <span>ابدأ التعلم</span>
                     <span className="material-symbols-outlined text-[14px]">arrow_back</span>
@@ -600,41 +600,41 @@ export default function HomePage() {
               </div>
 
               {/* Card 3 */}
-              <div className="p-5 rounded-3xl bg-dark-900 border border-gold-500/25 flex flex-col justify-between hover:border-gold-500/50 hover:shadow-xl transition-all group">
+              <div className="p-5 rounded-3xl bg-white dark:bg-dark-900 border border-gold-500/25 flex flex-col justify-between hover:border-gold-500/50 hover:shadow-xl transition-all group shadow-sm">
                 <div>
-                  <div className="aspect-video w-full rounded-2xl overflow-hidden mb-4 relative bg-dark-950">
+                  <div className="aspect-video w-full rounded-2xl overflow-hidden mb-4 relative bg-slate-900">
                     <img
                       src="https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=800&q=80"
                       alt="Nextjs"
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     />
-                    <div className="absolute top-2.5 right-2.5 px-2 py-0.5 rounded-full bg-red-600/90 text-white text-[10px] font-bold flex items-center gap-1">
+                    <div className="absolute top-2.5 right-2.5 px-2 py-0.5 rounded-full bg-red-600/90 text-white text-[10px] font-bold flex items-center gap-1 shadow-sm">
                       <span className="material-symbols-outlined text-[12px]">smart_display</span>
                       <span>يوتيوب</span>
                     </div>
-                    <div className="absolute bottom-2.5 right-2.5 px-2 py-0.5 rounded-md bg-dark-950/80 text-blue-300 border border-blue-500/30 text-[10px] font-mono">
+                    <div className="absolute bottom-2.5 right-2.5 px-2 py-0.5 rounded-md bg-slate-950/80 text-blue-300 border border-blue-500/30 text-[10px] font-mono backdrop-blur-xs">
                       3 تكليفات برمجية
                     </div>
                   </div>
 
-                  <span className="text-[10px] px-2 py-0.5 rounded bg-blue-500/15 text-blue-300 border border-blue-500/30 font-bold inline-block mb-2">
+                  <span className="text-[10px] px-2 py-0.5 rounded bg-blue-500/15 text-blue-700 dark:text-blue-300 border border-blue-500/30 font-bold inline-block mb-2">
                     تطوير الويب والبرمجة
                   </span>
-                  <h3 className="text-sm md:text-base font-bold text-white mb-2 leading-snug group-hover:text-gold-300 transition-colors">
+                  <h3 className="text-sm md:text-base font-bold text-slate-900 dark:text-white mb-2 leading-snug group-hover:text-amber-600 dark:group-hover:text-gold-300 transition-colors">
                     هندسة تطبيقات الويب مع Next.js 15 و PostgreSQL و Escrow
                   </h3>
-                  <p className="text-xs text-gray-400 line-clamp-2 leading-relaxed mb-4">
+                  <p className="text-xs text-slate-600 dark:text-gray-400 line-clamp-2 leading-relaxed mb-4">
                     بناء أنظمة الصلاحيات RBAC، دورة حياة الضمان المالي، وتأمين الـ API مع مراجعة كود Code Review.
                   </p>
                 </div>
 
                 <div className="pt-3 border-t border-gold-500/15 flex items-center justify-between">
-                  <div className="text-xs text-gray-300">
-                    بإشراف: <strong className="text-white">المهندس نديم (Super Admin)</strong>
+                  <div className="text-xs text-slate-600 dark:text-gray-300">
+                    بإشراف: <strong className="text-slate-900 dark:text-white">المهندس نديم (Super Admin)</strong>
                   </div>
                   <Link
                     href="/courses/course-nextjs-enterprise"
-                    className="px-3.5 py-1.5 rounded-xl bg-gold-500/15 hover:bg-gold-500 text-gold-300 hover:text-dark-950 font-bold text-xs transition-colors flex items-center gap-1"
+                    className="px-3.5 py-1.5 rounded-xl bg-gold-500/15 hover:bg-gold-500 text-amber-800 dark:text-gold-300 hover:text-dark-950 font-bold text-xs transition-colors flex items-center gap-1"
                   >
                     <span>ابدأ التعلم</span>
                     <span className="material-symbols-outlined text-[14px]">arrow_back</span>

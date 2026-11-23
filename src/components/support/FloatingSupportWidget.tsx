@@ -131,10 +131,10 @@ export const FloatingSupportWidget: React.FC = () => {
   const whatsappClean = (settings.supportWhatsapp || "+970599908299").replace(/[^0-9]/g, "");
 
   return (
-    <div className="fixed bottom-6 left-6 z-50 flex flex-col items-start select-none font-sans" dir="rtl">
+    <div className="fixed bottom-20 xl:bottom-6 left-4 sm:left-6 z-50 flex flex-col items-start select-none font-sans" dir="rtl">
       {/* Expanded Support Window */}
       {isOpen && (
-        <div className="mb-4 w-[360px] sm:w-[410px] max-h-[580px] h-[550px] bg-white dark:bg-dark-900 border border-slate-200 dark:border-dark-700/80 rounded-2xl shadow-2xl flex flex-col overflow-hidden backdrop-blur-xl animate-in fade-in slide-in-from-bottom-5 duration-200">
+        <div className="mb-4 w-[calc(100vw-32px)] sm:w-[410px] max-h-[70vh] sm:max-h-[580px] h-[520px] bg-white dark:bg-dark-900 border border-slate-200 dark:border-dark-700/80 rounded-2xl shadow-2xl flex flex-col overflow-hidden backdrop-blur-xl animate-in fade-in slide-in-from-bottom-5 duration-200">
           
           {/* Header */}
           <div className="p-4 bg-gradient-to-r from-dark-950 via-dark-900 to-dark-950 text-white flex items-center justify-between border-b border-gold-500/30">
@@ -395,11 +395,11 @@ export const FloatingSupportWidget: React.FC = () => {
         <button
           onClick={() => setIsOpen(!isOpen)}
           aria-label="الدعم الفني والتواصل"
-          className="relative flex items-center gap-2.5 px-4 py-3 rounded-full bg-gradient-to-r from-dark-950 via-dark-900 to-dark-950 text-white border-2 border-gold-500 shadow-xl hover:shadow-gold-500/30 hover:scale-105 active:scale-95 transition-all duration-200"
+          className="relative flex items-center gap-2 p-2.5 sm:px-4 sm:py-3 rounded-full bg-gradient-to-r from-dark-950 via-dark-900 to-dark-950 text-white border-2 border-gold-500 shadow-xl hover:shadow-gold-500/30 hover:scale-105 active:scale-95 transition-all duration-200"
         >
           {/* Animated icon or badge */}
           <div className="relative flex items-center justify-center">
-            <span className="material-symbols-outlined text-[24px] text-gold-400 group-hover:rotate-12 transition-transform">
+            <span className="material-symbols-outlined text-[22px] sm:text-[24px] text-gold-400 group-hover:rotate-12 transition-transform">
               {isOpen ? "close" : "support_agent"}
             </span>
             {!isOpen && (
@@ -407,12 +407,12 @@ export const FloatingSupportWidget: React.FC = () => {
             )}
           </div>
 
-          <span className="text-xs font-bold tracking-wide text-white group-hover:text-gold-300">
+          <span className="hidden sm:inline text-xs font-bold tracking-wide text-white group-hover:text-gold-300">
             {isOpen ? "إغلاق النافذة" : "الدعم الفني والسوشيال"}
           </span>
 
           {!isOpen && (
-            <span className="flex items-center gap-0.5 text-xs text-emerald-400 font-mono font-bold bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+            <span className="hidden sm:flex items-center gap-0.5 text-xs text-emerald-400 font-mono font-bold bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
               <span>متصل</span>
             </span>

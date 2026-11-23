@@ -648,10 +648,11 @@ ${education.map((edu) => `${edu.degree} - ${edu.institution} (${edu.year})`).joi
             {/* Resume Sheet Container (Print Target) */}
             <div
               id="printable-cv"
+              data-resume-sheet="true"
               className={`rounded-3xl p-8 sm:p-12 shadow-2xl transition-all border ${
                 activeTemplate === "gold"
                   ? "bg-[#0A0D14] border-gold-500/40 text-gray-200"
-                  : "bg-slate-900 border-slate-700 text-slate-100"
+                  : "template-slate bg-slate-900 border-slate-700 text-slate-100"
               }`}
             >
               {/* Header */}
