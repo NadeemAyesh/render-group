@@ -82,11 +82,19 @@ export default function LoginPage() {
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center z-10 px-4">
         <Link href="/" className="inline-flex items-center justify-center mb-4 group">
           <Image
+            src="/logo.png"
+            alt="Render Connect"
+            width={200}
+            height={50}
+            className="h-12 w-auto object-contain dark:hidden group-hover:scale-105 transition-transform"
+            priority
+          />
+          <Image
             src="/logo-dark.png"
             alt="Render Connect"
             width={200}
             height={50}
-            className="h-12 w-auto object-contain group-hover:scale-105 transition-transform"
+            className="h-12 w-auto object-contain hidden dark:block group-hover:scale-105 transition-transform"
             priority
           />
         </Link>

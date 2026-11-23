@@ -308,6 +308,71 @@ html:not(.dark) table tbody tr:hover {
   background-color: rgba(248, 250, 252, 0.8) !important;
 }
 
+/* Scrollbars styling for Light and Dark modes */
+html:not(.dark) ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+html:not(.dark) ::-webkit-scrollbar-track {
+  background: #F1F5F9;
+}
+html:not(.dark) ::-webkit-scrollbar-thumb {
+  background: #CBD5E1;
+  border-radius: 9999px;
+}
+html:not(.dark) ::-webkit-scrollbar-thumb:hover {
+  background: #94A3B8;
+}
+
+html.dark ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+html.dark ::-webkit-scrollbar-track {
+  background: #0B0F19;
+}
+html.dark ::-webkit-scrollbar-thumb {
+  background: #1E293B;
+  border-radius: 9999px;
+}
+html.dark ::-webkit-scrollbar-thumb:hover {
+  background: #334155;
+}
+
+/* Comprehensive Dark Mode Fallback Enhancements for Slate & Gray */
+html.dark .text-slate-900,
+html.dark .text-slate-800 {
+  color: #F8FAFC;
+}
+
+html.dark .text-slate-700,
+html.dark .text-slate-600 {
+  color: #CBD5E1;
+}
+
+html.dark .text-slate-500,
+html.dark .text-slate-400 {
+  color: #94A3B8;
+}
+
+html.dark .bg-slate-50 {
+  background-color: rgba(15, 22, 38, 0.7);
+}
+
+html.dark .bg-slate-100 {
+  background-color: #0F1626;
+}
+
+html.dark .bg-slate-200 {
+  background-color: #1E293B;
+}
+
+html.dark .border-slate-100,
+html.dark .border-slate-200,
+html.dark .border-slate-300 {
+  border-color: rgba(212, 175, 55, 0.18);
+}
+
 /* Dialog / Modal Overlays in Light Mode (target specifically modals/fixed backdrops) */
 html:not(.dark) .fixed.inset-0.bg-black\/70,
 html:not(.dark) .fixed.inset-0.bg-black\/80,

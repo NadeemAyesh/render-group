@@ -16,13 +16,20 @@ export const Footer: React.FC<FooterProps> = ({ onOpenActivation }) => {
           
           {/* Brand Col */}
           <div className="space-y-4">
-            <Link href="/" className="inline-flex items-center gap-2 justify-center md:justify-start">
+            <Link href="/" className="inline-flex items-center gap-2 justify-center md:justify-start group">
+              <Image
+                src="/logo.png"
+                alt="Render Connect"
+                width={160}
+                height={40}
+                className="h-10 w-auto object-contain dark:hidden group-hover:scale-105 transition-transform"
+              />
               <Image
                 src="/logo-dark.png"
                 alt="Render Connect"
                 width={160}
                 height={40}
-                className="h-10 w-auto object-contain"
+                className="h-10 w-auto object-contain hidden dark:block group-hover:scale-105 transition-transform"
               />
             </Link>
             <p className="text-xs text-gray-400 leading-relaxed">
