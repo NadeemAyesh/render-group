@@ -36,6 +36,8 @@ export interface SiteSettings {
   officialTelegram: string;
   officialTwitter: string;
   officialLinkedIn: string;
+  officialFacebook: string;
+  officialInstagram: string;
 }
 
 export const DEFAULT_SITE_SETTINGS: SiteSettings = {
@@ -69,11 +71,13 @@ export const DEFAULT_SITE_SETTINGS: SiteSettings = {
 
   // Contact & Social Channels
   supportEmail: "support@renderlancer.ps",
-  supportPhone: "+970 599 123 456",
-  supportWhatsapp: "+970 599 123 456",
+  supportPhone: "+970 599 908 299",
+  supportWhatsapp: "+970 599 908 299",
   officialTelegram: "@RenderLancer_Support",
   officialTwitter: "https://x.com/renderlancer",
   officialLinkedIn: "https://linkedin.com/company/renderlancer",
+  officialFacebook: "https://www.facebook.com/Rendergroup.studio/",
+  officialInstagram: "https://www.instagram.com/render.group_studio/",
 };
 
 const SETTINGS_STORAGE_KEY = "renderlancer_system_settings";
